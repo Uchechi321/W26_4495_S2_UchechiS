@@ -1,4 +1,4 @@
-# Visual Drilling Operations Decision Support System
+# Visual Drilling Operations & Decision Support System
 
 ## Course
 - CSIS 4495 – Applied Project
