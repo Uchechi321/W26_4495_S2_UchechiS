@@ -1,0 +1,13 @@
+.pageTitle {
+  margin-top: 0;
+}
+
+.pageSubtitle {
+  color: #444;
+}
+
+.placeholderBox {
+  border: 1px dashed #aaa;
+  border-radius: 12px;
+  padding: 16px;
+}

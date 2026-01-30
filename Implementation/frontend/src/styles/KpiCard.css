@@ -1,0 +1,46 @@
+.kpiCard {
+  border-radius: 16px;
+  padding: 18px;
+  border: 1px solid #eee;
+  background: #fff;
+}
+
+.kpiTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kpiIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f4f4f4;
+}
+
+.kpiBadge {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #f4f4f4;
+}
+
+.kpiTitle {
+  margin-top: 18px;
+  font-size: 14px;
+  color: #444;
+}
+
+.kpiValue {
+  margin-top: 8px;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.kpiSubtitle {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #666;
+}

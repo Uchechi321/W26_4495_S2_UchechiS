@@ -1,0 +1,42 @@
+.dash {
+  display: grid;
+  gap: 16px;
+}
+
+.dashTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashTitle {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.dashSub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.pmBtn {
+  border: 1px solid #cfd8dc;
+  background: white;
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.dashGrid {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+.dashRight {
+  display: grid;
+  gap: 14px;
+}
