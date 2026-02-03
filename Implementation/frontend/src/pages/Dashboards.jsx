@@ -1,7 +1,10 @@
 import { useParams } from "react-router-dom";
+import { useState } from "react";
 import Wellbore from "../components/Wellbore";
 import KpiCard from "../components/KpiCard";
+import SegmentModal from "../components/SegmentModal";
 import "../styles/Dashboards.css";
+
 
 // Sample well data (Week 4: hard-coded)
 const WELL_DATA = {
@@ -47,20 +50,36 @@ const WELL_DATA = {
     maintenanceRisk: "High",
     segments: [
       { from: 0, to: 200, level: "normal" },
+
       { from: 200, to: 400, level: "normal" },
-      { from: 400, to: 600, level: "warning" },
+
+      {
+        from: 400,
+        to: 600,
+        level: "warning",
+        eventType: "Minor Delay",
+        nptHours: 0.5,
+        operationType: "Drilling",
+        equipment: ["Mud Pumps", "Drill String"],
+        actionsTaken: ["Adjusted mud weight", "Resumed operations"],
+        whyItMatters:
+          "Detected anomaly in mud circulation pressure required temporary halt to adjust parameters.",
+        recordedAt: "2026-01-12 09:15:00",
+      },
+
       { from: 600, to: 800, level: "normal" },
       { from: 800, to: 1000, level: "warning" },
       { from: 1000, to: 1200, level: "critical" },
-      { from: 1200, to: 1400, level: "normal" },
-      { from: 1400, to: 1600, level: "warning" },
     ],
+
   },
 };
 
 export default function Dashboard() {
   const { wellId } = useParams();
   const data = WELL_DATA[wellId] ?? WELL_DATA["WELL-01"];
+  const [selectedSegment, setSelectedSegment] = useState(null);
+
 
   return (
     <div className="dash">
@@ -75,7 +94,12 @@ export default function Dashboard() {
 
       <div className="dashGrid">
         <section className="dashLeft">
-          <Wellbore depthMax={data.depthMax} segments={data.segments} />
+          <Wellbore
+            depthMax={data.depthMax}
+            segments={data.segments}
+            onSelectSegment={setSelectedSegment}
+          />
+
         </section>
 
         <aside className="dashRight">
@@ -112,6 +136,11 @@ export default function Dashboard() {
           />
         </aside>
       </div>
+      <SegmentModal
+        open={!!selectedSegment}
+        segment={selectedSegment}
+        onClose={() => setSelectedSegment(null)}
+      />
     </div>
   );
 }
