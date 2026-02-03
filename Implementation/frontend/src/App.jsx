@@ -3,6 +3,7 @@ import Layout from "./components/Layout";
 import Wells from "./pages/Wells";
 import Dashboard from "./pages/Dashboards";
 import Reports from "./pages/Reports";
+import Maintenance from "./pages/Maintenance";
 import "./App.css";
 
 export default function App() {
@@ -19,6 +20,9 @@ export default function App() {
 
           {/* One well dashboard page */}
           <Route path="/wells/:wellId" element={<Dashboard />} />
+
+          {/* ✅ NEW: Predictive Maintenance page for a well */}
+          <Route path="/wells/:wellId/maintenance" element={<Maintenance />} />
 
           {/* Reports page */}
           <Route path="/reports" element={<Reports />} />

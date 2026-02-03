@@ -1,111 +1,158 @@
-.pageTitle {
+.wellsPage {
+  padding: 8px 0;
+}
+
+.wellsTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.wellsTitle {
   margin: 0;
-  font-size: 24px;
+  font-size: 44px;
   font-weight: 900;
 }
 
-.pageSubtitle {
-  margin-top: 6px;
+.wellsSub {
+  margin: 6px 0 0;
   color: #555;
-  font-size: 13px;
 }
 
-.wellsHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 14px;
-}
-
-.search {
-  width: 360px;
-  max-width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 12px;
+.wellsSearch {
+  width: min(520px, 100%);
+  border: 1px solid #e6e6e6;
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 16px;
   outline: none;
 }
 
-.wellGrid {
+.wellsSearch:focus {
+  border-color: #cfcfcf;
+}
+
+.wellsGrid {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(3, minmax(240px, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 980px) {
+  .wellsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .wellCard {
-  text-align: left;
-  background: white;
+  background: #fff;
   border: 1px solid #eee;
-  border-radius: 16px;
-  padding: 14px;
-  cursor: pointer;
-  transition: transform 0.06s ease-in-out;
+  border-radius: 18px;
+  padding: 18px;
 }
 
-.wellCard:hover {
-  transform: translateY(-1px);
-}
-
-.wellTop {
+.wellCardTop {
   display: flex;
   justify-content: space-between;
-  align-items: start;
   gap: 12px;
 }
 
 .wellId {
+  font-size: 26px;
   font-weight: 900;
-  font-size: 16px;
 }
 
 .wellName {
-  font-size: 12px;
-  color: #666;
-  margin-top: 2px;
-}
-
-.statusBadge {
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid #eee;
-}
-
-/* Status colors */
-.statusBadge.normal {
-  background: #eef3f7;
-  color: #314455;
-}
-.statusBadge.warning {
-  background: #fff3cf;
-  color: #7a5a00;
-}
-.statusBadge.critical {
-  background: #ffe1e1;
-  color: #9a0000;
-}
-
-.wellMeta {
-  margin-top: 10px;
-  font-size: 12px;
+  margin-top: 4px;
   color: #444;
 }
 
-.metaLabel {
-  color: #777;
+.wellLoc {
+  margin-top: 10px;
+  color: #666;
 }
 
-.openRow {
-  margin-top: 12px;
+/* ✅ Colored status pill */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  border: 1px solid transparent;
+}
+
+.statusPill.normal {
+  background: #eef2f6;
+  color: #243447;
+  border-color: #dfe6ee;
+}
+
+.statusPill.warning {
+  background: #fff1c9;
+  color: #8a5a00;
+  border-color: #ffe1a3;
+}
+
+.statusPill.critical {
+  background: #ffdede;
+  color: #b30000;
+  border-color: #ffc7c7;
+}
+
+/* Open button */
+.openBtn {
+  width: 100%;
+  margin-top: 18px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 700;
-  font-size: 13px;
-  color: #111;
+  font-weight: 800;
+  font-size: 18px;
 }
 
 .arrow {
-  font-size: 16px;
+  font-size: 20px;
+}
+.openBtn:hover .arrow {
+  transform: translateX(4px);
+  transition: transform 0.2s ease;
+}
+/* ✅ Colored well cards */
+/* Base card */
+.wellCard {
+  border-radius: 18px;
+  padding: 18px;
+  border: 1px solid #eee;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+/* Hover effect */
+.wellCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+/* ✅ Card background by status */
+.wellCard.normal {
+  background: #f7f9fc; /* light blue/grey */
+}
+
+.wellCard.warning {
+  background: #fff6df; /* light yellow */
+  border-color: #ffe1a3;
+}
+
+.wellCard.critical {
+  background: #fff0f0; /* light red */
+  border-color: #ffc7c7;
 }

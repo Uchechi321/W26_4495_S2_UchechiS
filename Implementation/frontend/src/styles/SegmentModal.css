@@ -204,3 +204,45 @@
 .primaryBtn:hover {
   background: #154edc;
 }
+.modalH3 {
+  margin: 18px 0 10px;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.factorCard {
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid #eee;
+  padding: 16px;
+  background: #fff;
+}
+
+.factorCard.danger {
+  background: #fff0f0;
+  border-color: #ffd1d1;
+}
+
+.factorCard.warning {
+  background: #fff7e6;
+  border-color: #ffe0b2;
+}
+
+.factorHeading {
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.factorText {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.warningBox {
+  background: #fff7e6;
+  border-color: #ffe0b2;
+}
+
+    

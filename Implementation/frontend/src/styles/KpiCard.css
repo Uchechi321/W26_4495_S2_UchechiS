@@ -1,46 +1,80 @@
 .kpiCard {
-  border-radius: 16px;
-  padding: 18px;
+  border-radius: 18px;
   border: 1px solid #eee;
+  padding: 18px;
   background: #fff;
 }
 
-.kpiTop {
+.kpiTopRow {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
+  margin-bottom: 14px;
 }
 
 .kpiIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
-  background: #f4f4f4;
+  font-size: 20px;
+  background: rgba(0,0,0,0.04);
 }
 
 .kpiBadge {
-  font-size: 12px;
-  padding: 6px 10px;
+  font-size: 13px;
+  padding: 6px 12px;
   border-radius: 10px;
-  background: #f4f4f4;
+  background: rgba(0,0,0,0.06);
 }
 
 .kpiTitle {
-  margin-top: 18px;
-  font-size: 14px;
-  color: #444;
+  font-size: 18px;
+  margin-top: 10px;
 }
 
 .kpiValue {
-  margin-top: 8px;
-  font-size: 34px;
-  font-weight: 800;
+  font-size: 46px;
+  font-weight: 900;
+  margin-top: 10px;
 }
 
-.kpiSubtitle {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #666;
+.kpiSub {
+  margin-top: 10px;
+  font-size: 14px;
+  opacity: 0.85;
 }
+
+/* ✅ LIGHT PASTEL THEMES (like your screenshot) */
+.kpiCard.red {
+  background: #ffecec;
+  border-color: #ffc7c7;
+  color: #b30000;
+}
+.kpiCard.red .kpiIcon { background: #ffb3b3; }
+.kpiCard.red .kpiBadge { background: #ffdede; }
+
+.kpiCard.orange {
+  background: #fff1e2;
+  border-color: #ffd2a8;
+  color: #b34700;
+}
+.kpiCard.orange .kpiIcon { background: #ffd2a8; }
+.kpiCard.orange .kpiBadge { background: #ffe3c9; }
+
+.kpiCard.yellow {
+  background: #fff7d8;
+  border-color: #ffe1a3;
+  color: #8a5a00;
+}
+.kpiCard.yellow .kpiIcon { background: #ffe1a3; }
+.kpiCard.yellow .kpiBadge { background: #fff1c9; }
+
+.kpiCard.purple {
+  background: #f2eaff;
+  border-color: #e3d3ff;
+  color: #5a1fbf;
+}
+.kpiCard.purple .kpiIcon { background: #e3d3ff; }
+.kpiCard.purple .kpiBadge { background: #efe6ff; }

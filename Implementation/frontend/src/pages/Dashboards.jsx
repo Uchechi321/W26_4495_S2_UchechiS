@@ -1,10 +1,9 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import Wellbore from "../components/Wellbore";
 import KpiCard from "../components/KpiCard";
 import SegmentModal from "../components/SegmentModal";
 import "../styles/Dashboards.css";
-
 
 // Sample well data (Week 4: hard-coded)
 const WELL_DATA = {
@@ -50,7 +49,6 @@ const WELL_DATA = {
     maintenanceRisk: "High",
     segments: [
       { from: 0, to: 200, level: "normal" },
-
       { from: 200, to: 400, level: "normal" },
 
       {
@@ -65,31 +63,77 @@ const WELL_DATA = {
         whyItMatters:
           "Detected anomaly in mud circulation pressure required temporary halt to adjust parameters.",
         recordedAt: "2026-01-12 09:15:00",
+
+        // ✅ explanation must be INSIDE the same segment object
+        explanation: {
+          title: "Stuck Pipe Event Analysis",
+          flaggedReason:
+            "Based on recorded drilling data, automated analytics, and historical pattern recognition, this event was identified as significant due to multiple contributing factors.",
+
+          contributingFactors: [
+            {
+              heading: "Repeated events in same depth interval",
+              text:
+                "Multiple incidents occurred in this depth interval within a short period, suggesting formation-related risk.",
+              type: "danger",
+            },
+            {
+              heading: "Occurred during reaming operation",
+              text:
+                "Reaming increases mechanical stress and can contribute to sticking risk if conditions are unfavorable.",
+              type: "warning",
+            },
+          ],
+
+          technicalFactors: [
+            "Formation permeability changes at depth boundary",
+            "Increased mud cake thickness in permeable zones",
+            "Narrow clearance between drill string and wellbore wall",
+            "Extended static time during reaming operation",
+          ],
+
+          preventionMeasures: [
+            "Optimize mud weight to maintain overbalance",
+            "Minimize static time in high-risk depth intervals",
+            "Enhanced monitoring of torque and drag parameters",
+            "Consider modified reaming procedures for this depth range",
+          ],
+
+          methodology:
+            "This analysis is based on recorded drilling data (depth and time logs) and rule-based indicators from the dataset provided. It is a prototype explanation layer for Week 4.",
+        },
       },
 
       { from: 600, to: 800, level: "normal" },
       { from: 800, to: 1000, level: "warning" },
       { from: 1000, to: 1200, level: "critical" },
     ],
-
   },
 };
 
 export default function Dashboard() {
   const { wellId } = useParams();
+  const navigate = useNavigate();
   const data = WELL_DATA[wellId] ?? WELL_DATA["WELL-01"];
   const [selectedSegment, setSelectedSegment] = useState(null);
-
 
   return (
     <div className="dash">
       <div className="dashTop">
         <div>
           <div className="dashTitle">Drilling Dashboard — {wellId}</div>
-          <div className="dashSub">Real-time drilling operations analysis (prototype)</div>
+          <div className="dashSub">
+            Real-time drilling operations analysis (prototype)
+          </div>
         </div>
 
-        <button className="pmBtn">Predictive Maintenance</button>
+        <button
+            className="pmBtn"
+            onClick={() => navigate(`/wells/${wellId}/maintenance`)}
+          >
+            Predictive Maintenance
+        </button>
+
       </div>
 
       <div className="dashGrid">
@@ -99,43 +143,48 @@ export default function Dashboard() {
             segments={data.segments}
             onSelectSegment={setSelectedSegment}
           />
-
         </section>
 
         <aside className="dashRight">
           <KpiCard
-            icon="🕒"
-            title="Non-Productive Time"
-            value={`${data.nptHours} hrs`}
-            subtitle="Total across all events"
-            badge="NPT"
-          />
+          tone="red"
+          icon="🕒"
+          title="Non-Productive Time"
+          value={`${data.nptHours} hrs`}
+          subtitle="Total across all events"
+          badge="NPT"
+        />
 
-          <KpiCard
-            icon="📈"
-            title="Event Count"
-            value={`${data.eventCount}`}
-            subtitle={`${data.criticalEvents} critical events`}
-            badge="Events"
-          />
+        <KpiCard
+          tone="orange"
+          icon="📈"
+          title="Event Count"
+          value={`${data.eventCount}`}
+          subtitle={`${data.criticalEvents} critical events`}
+          badge="Events"
+        />
 
-          <KpiCard
-            icon="⚠️"
-            title="High-Risk Zones"
-            value={`${data.highRiskZones}`}
-            subtitle="Depth segments flagged"
-            badge="Risk"
-          />
+        <KpiCard
+          tone="yellow"
+          icon="⚠️"
+          title="High-Risk Zones"
+          value={`${data.highRiskZones}`}
+          subtitle="Depth segments flagged"
+          badge="Risk"
+        />
 
-          <KpiCard
-            icon="🔧"
-            title="Maintenance Risk"
-            value={data.maintenanceRisk}
-            subtitle="Based on recorded operational stress"
-            badge="Status"
-          />
+        <KpiCard
+          tone="purple"
+          icon="🔧"
+          title="Maintenance Risk"
+          value={data.maintenanceRisk}
+          subtitle="Based on recorded operational stress"
+          badge="Status"
+        />
+
         </aside>
       </div>
+
       <SegmentModal
         open={!!selectedSegment}
         segment={selectedSegment}
