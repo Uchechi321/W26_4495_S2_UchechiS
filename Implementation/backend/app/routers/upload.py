@@ -1,27 +1,17 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from sqlalchemy.orm import Session
-import pandas as pd
-from io import BytesIO
+from datetime import date
 import logging
+from ..models.well import Well
 
 from ..database import SessionLocal
-from ..models import Well, Operation, Event
-from ..utils.transform import transform_dataset
+from ..services.ingestion_service import ingest_daily_report_pdf
 
 router = APIRouter(prefix="/upload", tags=["Upload"])
 
-# ---------------------------
-# Logging Configuration
-# ---------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# ---------------------------
-# Database Session Dependency
-# ---------------------------
 def get_db():
     db = SessionLocal()
     try:
@@ -29,205 +19,144 @@ def get_db():
     finally:
         db.close()
 
-# ---------------------------
-# Duplicate Check Helpers
-# ---------------------------
-def well_exists(db: Session, well_id):
-    return db.query(Well).filter(Well.well_id == well_id).first() is not None
 
-def operation_exists(db: Session, well_id, date, operation_type):
-    return db.query(Operation).filter(
-        Operation.well_id == well_id,
-        Operation.date == date,
-        Operation.operation_type == operation_type
-    ).first() is not None
 
-def event_exists(db: Session, well_id, timestamp, event_type):
-    return db.query(Event).filter(
-        Event.well_id == well_id,
-        Event.timestamp == timestamp,
-        Event.event_type == event_type
-    ).first() is not None
+@router.post("/daily-report")
+async def upload_daily_report(
+    well_id: str,
+    report_date: str,  # YYYY-MM-DD
+    parser_type: str = "TBD",
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    logger.info(f"Upload started: {file.filename} | well_id={well_id} | report_date={report_date}")
 
-# ---------------------------
-# Upload Endpoint
-# ---------------------------
-@router.post("/")
-async def upload_dataset(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    logger.info(f"Upload started for file: {file.filename}")
+    # Validate file type
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Please upload a PDF daily drilling report.")
 
-    # 1) Validate file type
-    if not file.filename.lower().endswith((".xlsx", ".xls")):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid file type. Please upload an Excel file (.xlsx or .xls)."
+    # Parse date string
+    try:
+        y, m, d = map(int, report_date.split("-"))
+        report_date_obj = date(y, m, d)
+    except:
+        raise HTTPException(status_code=400, detail="report_date must be in YYYY-MM-DD format.")
+
+    pdf_bytes = await file.read()
+
+    try:
+        result = ingest_daily_report_pdf(
+            db=db,
+            well_id=well_id,
+            report_date_obj=report_date_obj,
+            filename=file.filename,
+            pdf_bytes=pdf_bytes,
+            parser_type=parser_type
         )
+        return {"status": "success", **result}
 
-    # 2) Read Excel file
-    contents = await file.read()
-    df_dict = pd.read_excel(BytesIO(contents), sheet_name=None)
-    logger.info(f"Detected sheets: {list(df_dict.keys())}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
-    # 3) Validate required sheets
-    required_sheets = ["wells", "operations", "events"]
-    sheet_map = {name.lower(): name for name in df_dict.keys()}  # lower -> original
-    missing_sheets = [s for s in required_sheets if s not in sheet_map]
-    if missing_sheets:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Missing required sheets: {', '.join(missing_sheets)}"
-        )
-
-    # 4) Transform each sheet using the full pipeline
-    transformed = {}
-    for original_name, df in df_dict.items():
-        sheet_lower = original_name.lower()
-        logger.info(f"Transforming sheet: {original_name}")
-        transformed[sheet_lower] = transform_dataset(df)
-
-    # 5) Validate required columns AFTER transformation
-    required_columns = {
-        "wells": ["well_id", "well_name", "location"],
-        "operations": ["well_id", "date", "depth_m", "operation_type"],
-        "events": ["well_id", "timestamp", "event_type", "description"],
-    }
-
-    for sheet_name, cols in required_columns.items():
-        df = transformed.get(sheet_name)
-        missing_cols = [c for c in cols if c not in df.columns]
-        if missing_cols:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Sheet '{sheet_name}' is missing required columns: {', '.join(missing_cols)}"
-            )
-
-    # 6) Extract sheets
-    wells_df = transformed["wells"].copy()
-    operations_df = transformed["operations"].copy()
-    events_df = transformed["events"].copy()
-
-    # ---------------------------
-    # Insert Wells
-    # ---------------------------
-    inserted_wells = skipped_wells = failed_wells = 0
-    well_errors = []
-
-    # ✅ prevent duplicate well_id inside the file itself
-    wells_df = wells_df.dropna(subset=["well_id"]).drop_duplicates(subset=["well_id"])
-
-    try:
-        for index, row in wells_df.iterrows():
-            try:
-                well_id = row["well_id"]
-
-                if well_exists(db, well_id):
-                    skipped_wells += 1
-                    continue
-
-                db.add(Well(
-                    well_id=well_id,
-                    well_name=row.get("well_name"),
-                    location=row.get("location"),
-                ))
-                inserted_wells += 1
-
-            except Exception as e:
-                failed_wells += 1
-                logger.error(f"Failed to insert well at row {index}: {e}")
-                well_errors.append({"row": int(index), "error": str(e)})
-
-        db.commit()
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed inserting wells: {str(e)}")
+        logger.exception("Upload failed")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
-    # ---------------------------
-    # Insert Operations
-    # ---------------------------
-    inserted_ops = skipped_ops = failed_ops = 0
-    op_errors = []
+@router.post("/wells")
+def create_well(
+    well_id: str,
+    well_name: str = None,
+    location: str = None,
+    db: Session = Depends(get_db)
+):
+    existing = db.query(Well).filter(Well.well_id == well_id).first()
+    if existing:
+        return {"status": "exists", "well_id": well_id}
 
-    try:
-        for index, row in operations_df.iterrows():
-            try:
-                well_id = row["well_id"]
-                date = row["date"]
-                operation_type = row["operation_type"]
+    w = Well(
+        well_id=well_id,
+        well_name=well_name or well_id,
+        location=location
+    )
+    db.add(w)
+    db.commit()
+    return {"status": "created", "well_id": well_id}
 
-                if operation_exists(db, well_id, date, operation_type):
-                    skipped_ops += 1
-                    continue
 
-                db.add(Operation(
-                    well_id=well_id,
-                    date=date,
-                    depth=row["depth_m"],          # standardized depth
-                    operation_type=operation_type,
-                ))
-                inserted_ops += 1
+@router.get("/wells")
+def list_wells(db: Session = Depends(get_db)):
+    wells = db.query(Well).all()
+    return [
+        {
+            "well_id": w.well_id,
+            "well_name": w.well_name,
+            "location": w.location,
+            "total_depth": w.total_depth,
+            "spud_date": str(w.spud_date) if w.spud_date else None,
+            "well_status": w.well_status
+        }
+        for w in wells
+    ]
 
-            except Exception as e:
-                failed_ops += 1
-                logger.error(f"Failed to insert operation at row {index}: {e}")
-                op_errors.append({"row": int(index), "error": str(e)})
 
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed inserting operations: {str(e)}")
+from ..models.operation import Operation
 
-    # ---------------------------
-    # Insert Events
-    # ---------------------------
-    inserted_events = skipped_events = failed_events = 0
-    event_errors = []
+@router.get("/wells/{well_id}/operations")
+def get_well_operations(well_id: str, db: Session = Depends(get_db)):
+    ops = (
+        db.query(Operation)
+        .filter(Operation.well_id == well_id)
+        .order_by(Operation.depth_from.asc())
+        .all()
+    )
 
-    try:
-        for index, row in events_df.iterrows():
-            try:
-                well_id = row["well_id"]
-                ts = row["timestamp"]
-                event_type = row["event_type"]
+    return [
+        {
+            "operation_id": o.operation_id,
+            "report_id": o.report_id,
+            "depth_from": o.depth_from,
+            "depth_to": o.depth_to,
+            "operation_type": o.operation_type,
+            "description": getattr(o, "description", None),
+            "duration_hours": getattr(o, "duration_hours", None),
+            "npt_hours": getattr(o, "npt_hours", None),
+        }
+        for o in ops
+    ]
 
-                if event_exists(db, well_id, ts, event_type):
-                    skipped_events += 1
-                    continue
+@router.get("/wells/{well_id}/segments")
+def get_well_segments(well_id: str, db: Session = Depends(get_db)):
+    ops = (
+        db.query(Operation)
+        .filter(Operation.well_id == well_id)
+        .order_by(Operation.depth_from.asc())
+        .all()
+    )
 
-                # ✅ IMPORTANT: use the actual model field name
-                # If your Event model field is `timestamp`, use timestamp=...
-                # If it's `event_time`, then change both event_exists() and this line to match.
-                db.add(Event(
-                    well_id=well_id,
-                    timestamp=ts,
-                    event_type=event_type,
-                    description=row["description"],
-                ))
-                inserted_events += 1
+    def level_for(text: str) -> str:
+        t = (text or "").upper()
+        critical_words = ["STUCK", "KICK", "WELL CONTROL", "LOSS CIRCULATION", "BOP FAILURE"]
+        warning_words = ["WAIT", "NPT", "DELAY", "TROUBLE", "LOSS", "REPAIR", "LEAK"]
 
-            except Exception as e:
-                failed_events += 1
-                logger.error(f"Failed to insert event at row {index}: {e}")
-                event_errors.append({"row": int(index), "error": str(e)})
+        if any(w in t for w in critical_words):
+            return "critical"
+        if any(w in t for w in warning_words):
+            return "warning"
+        return "normal"
 
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed inserting events: {str(e)}")
+    segments = []
+    for o in ops:
+        desc = getattr(o, "description", "") or ""
+        segments.append({
+            "from": o.depth_from,
+            "to": o.depth_to,
+            "level": level_for(desc),
+            "eventType": o.operation_type,     # shown in modal as “Event Type”
+            "operationType": o.operation_type,
+            "whyItMatters": desc,
+            "nptHours": getattr(o, "npt_hours", None),
+            "recordedAt": None
+        })
 
-    logger.info("Upload completed successfully")
+    return segments
 
-    return {
-        "status": "success",
-        "wells_inserted": inserted_wells,
-        "wells_skipped": skipped_wells,
-        "wells_failed": failed_wells,
-        "well_errors": well_errors,
-        "operations_inserted": inserted_ops,
-        "operations_skipped": skipped_ops,
-        "operations_failed": failed_ops,
-        "operation_errors": op_errors,
-        "events_inserted": inserted_events,
-        "events_skipped": skipped_events,
-        "events_failed": failed_events,
-        "event_errors": event_errors,
-    }
