@@ -1,187 +1,107 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import Wellbore from "../components/Wellbore";
 import KpiCard from "../components/KpiCard";
 import SegmentModal from "../components/SegmentModal";
 import "../styles/Dashboards.css";
 
-// Sample well data (Week 4: hard-coded)
-const WELL_DATA = {
-  "WELL-01": {
-    depthMax: 2000,
-    nptHours: 2.1,
-    eventCount: 1,
-    criticalEvents: 0,
-    highRiskZones: 0,
-    maintenanceRisk: "Low",
-    segments: [
-      { from: 0, to: 200, level: "normal" },
-      { from: 200, to: 400, level: "normal" },
-      { from: 400, to: 600, level: "normal" },
-      { from: 600, to: 800, level: "warning" },
-      { from: 800, to: 1000, level: "normal" },
-    ],
-  },
-
-  "WELL-02": {
-    depthMax: 2000,
-    nptHours: 5.4,
-    eventCount: 3,
-    criticalEvents: 1,
-    highRiskZones: 1,
-    maintenanceRisk: "Medium",
-    segments: [
-      { from: 0, to: 200, level: "normal" },
-      { from: 200, to: 400, level: "normal" },
-      { from: 400, to: 600, level: "warning" },
-      { from: 600, to: 800, level: "normal" },
-      { from: 800, to: 1000, level: "warning" },
-      { from: 1000, to: 1200, level: "critical" },
-    ],
-  },
-
-  "WELL-03": {
-    depthMax: 2000,
-    nptHours: 8.3,
-    eventCount: 4,
-    criticalEvents: 1,
-    highRiskZones: 1,
-    maintenanceRisk: "High",
-    segments: [
-      { from: 0, to: 200, level: "normal" },
-      { from: 200, to: 400, level: "normal" },
-
-      {
-        from: 400,
-        to: 600,
-        level: "warning",
-        eventType: "Minor Delay",
-        nptHours: 0.5,
-        operationType: "Drilling",
-        equipment: ["Mud Pumps", "Drill String"],
-        actionsTaken: ["Adjusted mud weight", "Resumed operations"],
-        whyItMatters:
-          "Detected anomaly in mud circulation pressure required temporary halt to adjust parameters.",
-        recordedAt: "2026-01-12 09:15:00",
-
-        // ✅ explanation must be INSIDE the same segment object
-        explanation: {
-          title: "Stuck Pipe Event Analysis",
-          flaggedReason:
-            "Based on recorded drilling data, automated analytics, and historical pattern recognition, this event was identified as significant due to multiple contributing factors.",
-
-          contributingFactors: [
-            {
-              heading: "Repeated events in same depth interval",
-              text:
-                "Multiple incidents occurred in this depth interval within a short period, suggesting formation-related risk.",
-              type: "danger",
-            },
-            {
-              heading: "Occurred during reaming operation",
-              text:
-                "Reaming increases mechanical stress and can contribute to sticking risk if conditions are unfavorable.",
-              type: "warning",
-            },
-          ],
-
-          technicalFactors: [
-            "Formation permeability changes at depth boundary",
-            "Increased mud cake thickness in permeable zones",
-            "Narrow clearance between drill string and wellbore wall",
-            "Extended static time during reaming operation",
-          ],
-
-          preventionMeasures: [
-            "Optimize mud weight to maintain overbalance",
-            "Minimize static time in high-risk depth intervals",
-            "Enhanced monitoring of torque and drag parameters",
-            "Consider modified reaming procedures for this depth range",
-          ],
-
-          methodology:
-            "This analysis is based on recorded drilling data (depth and time logs) and rule-based indicators from the dataset provided. It is a prototype explanation layer for Week 4.",
-        },
-      },
-
-      { from: 600, to: 800, level: "normal" },
-      { from: 800, to: 1000, level: "warning" },
-      { from: 1000, to: 1200, level: "critical" },
-    ],
-  },
-};
-
 export default function Dashboard() {
   const { wellId } = useParams();
   const navigate = useNavigate();
-  const data = WELL_DATA[wellId] ?? WELL_DATA["WELL-01"];
+
+  const [dash, setDash] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedSegment, setSelectedSegment] = useState(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/wells/${wellId}/dashboard`);
+        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+        const data = await res.json();
+        setDash(data);
+      } catch (e) {
+        setError(e.message || "Failed to load dashboard");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, [wellId]);
+
+  if (loading) return <div style={{ padding: 16 }}>Loading dashboard…</div>;
+  if (error) return <div style={{ padding: 16, color: "crimson" }}>{error}</div>;
+  if (!dash) return <div style={{ padding: 16 }}>No data.</div>;
+
+  const k = dash.kpis; // ✅ kpis object from backend
 
   return (
     <div className="dash">
       <div className="dashTop">
         <div>
           <div className="dashTitle">Drilling Dashboard — {wellId}</div>
-          <div className="dashSub">
-            Real-time drilling operations analysis (prototype)
-          </div>
+          <div className="dashSub">Live data from backend (PDF ingestion)</div>
         </div>
 
         <button
-            className="pmBtn"
-            onClick={() => navigate(`/wells/${wellId}/maintenance`)}
-          >
-            Predictive Maintenance
+          className="pmBtn"
+          onClick={() => navigate(`/wells/${wellId}/maintenance`)}
+        >
+          Predictive Maintenance
         </button>
-
       </div>
 
       <div className="dashGrid">
         <section className="dashLeft">
           <Wellbore
-            depthMax={data.depthMax}
-            segments={data.segments}
+            depthMax={k.depthMax}          // ✅ FIX: depthMax comes from kpis
+            segments={dash.segments}       // ✅ segments is top-level
             onSelectSegment={setSelectedSegment}
           />
         </section>
 
         <aside className="dashRight">
           <KpiCard
-          tone="red"
-          icon="🕒"
-          title="Non-Productive Time"
-          value={`${data.nptHours} hrs`}
-          subtitle="Total across all events"
-          badge="NPT"
-        />
+            icon="🕒"
+            title="Non-Productive Time"
+            value={`${k.nptHours} hrs`}
+            subtitle="Total across all events"
+            badge="NPT"
+            tone="danger"
+          />
 
-        <KpiCard
-          tone="orange"
-          icon="📈"
-          title="Event Count"
-          value={`${data.eventCount}`}
-          subtitle={`${data.criticalEvents} critical events`}
-          badge="Events"
-        />
+          <KpiCard
+            icon="📈"
+            title="Event Count"
+            value={`${k.eventCount}`}
+            subtitle={`${k.criticalEvents} critical events`}
+            badge="Events"
+            tone="warning"
+          />
 
-        <KpiCard
-          tone="yellow"
-          icon="⚠️"
-          title="High-Risk Zones"
-          value={`${data.highRiskZones}`}
-          subtitle="Depth segments flagged"
-          badge="Risk"
-        />
+          <KpiCard
+            icon="⚠️"
+            title="High-Risk Zones"
+            value={`${k.highRiskZones}`}
+            subtitle="Depth segments flagged"
+            badge="Risk"
+            tone="risk"
+          />
 
-        <KpiCard
-          tone="purple"
-          icon="🔧"
-          title="Maintenance Risk"
-          value={data.maintenanceRisk}
-          subtitle="Based on recorded operational stress"
-          badge="Status"
-        />
-
+          <KpiCard
+            icon="🔧"
+            title="Maintenance Risk"
+            value={k.maintenanceRisk}
+            subtitle="Prototype rule-based risk"
+            badge="Status"
+            tone="status"
+          />
         </aside>
       </div>
 

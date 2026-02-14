@@ -19,3 +19,7 @@ app.include_router(wells.router)
 app.include_router(operations.router)
 
 Base.metadata.create_all(bind=engine)
+
+@app.get("/")
+def root():
+    return {"message": "Backend is running"}
