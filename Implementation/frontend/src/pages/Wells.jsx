@@ -1,79 +1,65 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Wells.css";
 
-const wells = [
-  { id: "WELL-01", name: "Well 01", location: "Field A", status: "Normal" },
-  { id: "WELL-02", name: "Well 02", location: "Field B", status: "Warning" },
-  { id: "WELL-03", name: "Well 03", location: "Field C", status: "Critical" },
-];
-
-function statusClass(status) {
-  if (status === "Critical") return "critical";
-  if (status === "Warning") return "warning";
-  return "normal";
-}
-
 export default function Wells() {
+  const [wells, setWells] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
-  const [query, setQuery] = useState("");
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return wells;
+  useEffect(() => {
+    async function loadWells() {
+      setLoading(true);
+      setError("");
 
-    return wells.filter((w) => {
-      return (
-        w.id.toLowerCase().includes(q) ||
-        w.name.toLowerCase().includes(q) ||
-        w.location.toLowerCase().includes(q) ||
-        w.status.toLowerCase().includes(q)
-      );
-    });
-  }, [query]);
+      try {
+        const res = await fetch("http://127.0.0.1:8000/wells/");
+        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+        const data = await res.json();
+        setWells(data);
+      } catch (e) {
+        setError(e.message || "Failed to load wells");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadWells();
+  }, []);
+
+  if (loading) return <div style={{ padding: 16 }}>Loading wells…</div>;
+  if (error) return <div style={{ padding: 16, color: "crimson" }}>{error}</div>;
 
   return (
-    <div className="wellsPage">
+    <div className="wellsWrap">
       <div className="wellsTop">
         <div>
           <h1 className="wellsTitle">Wells</h1>
-          <p className="wellsSub">Choose a well to open its dashboard view.</p>
+          <div className="wellsSub">Choose a well to open its dashboard view.</div>
         </div>
-
-        <input
-          className="wellsSearch"
-          placeholder="Search wells (e.g., WELL-03, critical, Field A)..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
       </div>
 
       <div className="wellsGrid">
-        {filtered.map((w) => (
-          <div key={w.id}
-              className={`wellCard ${statusClass(w.status)}`}
-            >
-
+        {wells.map((w) => (
+          <div
+            key={w.well_id}
+            className="wellCard"
+            onClick={() => navigate(`/wells/${w.well_id}`)}
+            role="button"
+            tabIndex={0}
+          >
             <div className="wellCardTop">
-              <div>
-                <div className="wellId">{w.id}</div>
-                <div className="wellName">{w.name}</div>
-                <div className="wellLoc">Location: {w.location}</div>
-              </div>
-
-              <span className={`statusPill ${statusClass(w.status)}`}>
-                {w.status}
-              </span>
+              <div className="wellId">{w.well_id}</div>
+              <div className="wellBadge">Open</div>
             </div>
 
-            <button
-              className="openBtn"
-              type="button"
-              onClick={() => navigate(`/wells/${w.id}`)}
-            >
-              <span>Open dashboard</span>
-              <span className="arrow">→</span>
-            </button>
+            <div className="wellName">{w.well_name || w.well_id}</div>
+            <div className="wellLoc">
+              Location: {w.location ? w.location : "N/A"}
+            </div>
+
+            <div className="openDash">Open dashboard →</div>
           </div>
         ))}
       </div>
