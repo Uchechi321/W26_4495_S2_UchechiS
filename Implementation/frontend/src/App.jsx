@@ -3,35 +3,37 @@ import Layout from "./components/Layout";
 import Wells from "./pages/Wells";
 import Dashboard from "./pages/Dashboards";
 import Reports from "./pages/Reports";
+import ReportDetail from "./pages/ReportDetail";
 import Maintenance from "./pages/Maintenance";
+import UploadReport from "./pages/UploadReport";
+
 import "./App.css";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Layout is the frame (sidebar + content area) */}
         <Route element={<Layout />}>
-          {/* Default page */}
+
           <Route path="/" element={<Navigate to="/wells" replace />} />
 
-          {/* Wells list page */}
           <Route path="/wells" element={<Wells />} />
-
-          {/* One well dashboard page */}
           <Route path="/wells/:wellId" element={<Dashboard />} />
 
-          {/* ✅ NEW: Predictive Maintenance page for a well */}
+          <Route path="/wells/:wellId/reports" element={<Reports />} />
+
+          <Route
+            path="/wells/:wellId/report/:reportId"
+            element={<ReportDetail />}
+          />
+
           <Route path="/wells/:wellId/maintenance" element={<Maintenance />} />
 
-          {/* Reports page */}
-          <Route path="/reports" element={<Reports />} />
+          {/* ✅ FIX: Upload route must be BEFORE the wildcard */}
+          <Route path="/wells/:wellId/upload" element={<UploadReport />} />
 
-          {/* If someone types a wrong URL */}
+          {/* Wildcard last */}
           <Route path="*" element={<div style={{ padding: 16 }}>Page not found</div>} />
-
-          <Route path="/wells/:wellId/reports" element={<Reports />} />
-          <Route path="/wells/:wellId/report/:reportId" element={<ReportDetail />} />
 
         </Route>
       </Routes>

@@ -79,3 +79,22 @@
 .reportsLoading {
   padding: 20px;
 }
+.reportsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.uploadBtn {
+  background: #007bff;
+  color: white;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.uploadBtn:hover {
+  background: #005fcc;
+}

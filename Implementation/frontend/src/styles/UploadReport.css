@@ -1,0 +1,46 @@
+.uploadPage {
+  padding: 24px;
+}
+
+.uploadTitle {
+  font-size: 22px;
+  margin-bottom: 18px;
+}
+
+.uploadForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 320px;
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.uploadForm input,
+.uploadForm select {
+  padding: 10px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+}
+
+.uploadBtn2 {
+  padding: 10px 16px;
+  background: #007bff;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+}
+
+.uploadBtn2:hover {
+  background: #005fcc;
+}
+
+.uploadStatus {
+  margin-top: 20px;
+  font-weight: bold;
+}
+.uploadStatus.success { color: green; }
+.uploadStatus.error { color: red; }

@@ -1,0 +1,23 @@
+.reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.reportTable th,
+.reportTable td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+.reportTable th {
+  background: #f4f4f4;
+  text-align: left;
+}
+
+.reportTable tr:nth-child(even) {
+  background: #fafafa;
+}
+.reportTable tr:hover {
+  background: #f1f1f1;
+}

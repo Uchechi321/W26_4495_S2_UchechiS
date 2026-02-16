@@ -8,6 +8,11 @@ export default function Wells() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const [showModal, setShowModal] = useState(false);
+  const [newWellId, setNewWellId] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newLocation, setNewLocation] = useState("");
+
   useEffect(() => {
     async function loadWells() {
       setLoading(true);
@@ -38,8 +43,55 @@ export default function Wells() {
           <h1 className="wellsTitle">Wells</h1>
           <div className="wellsSub">Choose a well to open its dashboard view.</div>
         </div>
+
+        {/* Create Well Button */}
+        <button className="createWellBtn" onClick={() => setShowModal(true)}>
+          + Create Well
+        </button>
       </div>
 
+      {/* Modal */}
+      {showModal && (
+        <div className="modalOverlay">
+          <div className="modalCard">
+            <h3>Create New Well</h3>
+
+            <input
+              placeholder="Well ID"
+              value={newWellId}
+              onChange={(e) => setNewWellId(e.target.value)}
+            />
+            <input
+              placeholder="Well Name"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+            />
+            <input
+              placeholder="Location"
+              value={newLocation}
+              onChange={(e) => setNewLocation(e.target.value)}
+            />
+
+            <button
+              className="createWellBtn2"
+              onClick={async () => {
+                await fetch(
+                  `http://127.0.0.1:8000/wells?well_id=${newWellId}&well_name=${newName}&location=${newLocation}`,
+                  { method: "POST" }
+                );
+                setShowModal(false);
+                window.location.reload();
+              }}
+            >
+              Create
+            </button>
+
+            <button onClick={() => setShowModal(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Wells Grid */}
       <div className="wellsGrid">
         {wells.map((w) => (
           <div
@@ -55,9 +107,7 @@ export default function Wells() {
             </div>
 
             <div className="wellName">{w.well_name || w.well_id}</div>
-            <div className="wellLoc">
-              Location: {w.location ? w.location : "N/A"}
-            </div>
+            <div className="wellLoc">Location: {w.location || "N/A"}</div>
 
             <div className="openDash">Open dashboard →</div>
           </div>

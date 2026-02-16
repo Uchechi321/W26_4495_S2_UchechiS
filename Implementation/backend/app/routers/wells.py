@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models.well import Well
 from ..models.operation import Operation
+from ..models.daily_report import DailyReport
 
 router = APIRouter(prefix="/wells", tags=["Wells"])
 
@@ -126,3 +127,43 @@ def list_reports_for_well(well_id: str, db: Session = Depends(get_db)):
         }
         for r in reports
     ]
+
+
+@router.get("/{well_id}/report/{report_id}")
+def get_report_detail(well_id: str, report_id: int, db: Session = Depends(get_db)):
+
+    report = (
+        db.query(DailyReport)
+        .filter(DailyReport.well_id == well_id, DailyReport.report_id == report_id)
+        .first()
+    )
+
+    if not report:
+        raise HTTPException(404, f"Report {report_id} not found for well {well_id}")
+
+    operations = (
+        db.query(Operation)
+        .filter(Operation.report_id == report_id)
+        .order_by(Operation.depth_from.asc())
+        .all()
+    )
+
+    return {
+        "report": {
+            "report_id": report.report_id,
+            "filename": report.source_filename,
+            "parser_type": report.parser_type,
+            "report_date": report.report_date,
+        },
+        "operations": [
+            {
+                "depth_from": o.depth_from,
+                "depth_to": o.depth_to,
+                "operation_type": o.operation_type,
+                "description": o.description,
+                "duration_hours": o.duration_hours,
+                "npt_hours": o.npt_hours,
+            }
+            for o in operations
+        ]
+    }

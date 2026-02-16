@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import "../styles/Reports.css";
 
 export default function Reports() {
   const { wellId } = useParams();
+  const navigate = useNavigate();
 
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,9 +32,20 @@ export default function Reports() {
 
   return (
     <div className="reportsPage">
-      <h2 className="reportsTitle">
-        Reports for <span>{wellId}</span>
-      </h2>
+
+      {/* ✅ THIS WAS MISSING FROM YOUR RETURN */}
+      <div className="reportsHeader">
+        <h2 className="reportsTitle">
+          Reports for <span>{wellId}</span>
+        </h2>
+
+        <button
+          className="uploadBtn"
+          onClick={() => navigate(`/wells/${wellId}/upload`)}
+        >
+          + Upload Report
+        </button>
+      </div>
 
       <div className="reportsContainer">
         {reports.length === 0 ? (
@@ -44,7 +56,7 @@ export default function Reports() {
               key={r.report_id}
               className="reportCard"
               onClick={() =>
-                (window.location.href = `/wells/${wellId}/report/${r.report_id}`)
+                navigate(`/wells/${wellId}/report/${r.report_id}`)
               }
             >
               <div className="reportCardTop">
