@@ -1,80 +1,48 @@
-.kpiCard {
-  border-radius: 18px;
+.kpiCard{
   border: 1px solid #eee;
+  border-radius: 18px;
   padding: 18px;
   background: #fff;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.03);
 }
 
-.kpiTopRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: start;
+.kpiTop{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
   margin-bottom: 14px;
 }
 
-.kpiIcon {
-  width: 48px;
-  height: 48px;
+.kpiIcon{
+  width: 44px;
+  height: 44px;
   border-radius: 14px;
-  display: grid;
-  place-items: center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f2f2f2;
   font-size: 20px;
-  background: rgba(0,0,0,0.04);
 }
 
-.kpiBadge {
-  font-size: 13px;
-  padding: 6px 12px;
-  border-radius: 10px;
-  background: rgba(0,0,0,0.06);
-}
-
-.kpiTitle {
-  font-size: 18px;
-  margin-top: 10px;
-}
-
-.kpiValue {
-  font-size: 46px;
-  font-weight: 900;
-  margin-top: 10px;
-}
-
-.kpiSub {
-  margin-top: 10px;
+.kpiBadge{
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 14px;
   font-size: 14px;
-  opacity: 0.85;
+  background:#f2f2f2;
 }
 
-/* ✅ LIGHT PASTEL THEMES (like your screenshot) */
-.kpiCard.red {
-  background: #ffecec;
-  border-color: #ffc7c7;
-  color: #b30000;
-}
-.kpiCard.red .kpiIcon { background: #ffb3b3; }
-.kpiCard.red .kpiBadge { background: #ffdede; }
+.kpiTitle{ font-size: 16px; margin-top: 6px; }
+.kpiValue{ font-size: 44px; font-weight: 800; margin: 6px 0; }
+.kpiSub{ opacity: .7; }
 
-.kpiCard.orange {
-  background: #fff1e2;
-  border-color: #ffd2a8;
-  color: #b34700;
-}
-.kpiCard.orange .kpiIcon { background: #ffd2a8; }
-.kpiCard.orange .kpiBadge { background: #ffe3c9; }
+/* LIGHT TONES */
+.kpiCard.danger{ background: #fdecec; border-color: #f6bdbd; }
+.kpiCard.warning{ background: #fff3df; border-color: #f3d1a2; }
+.kpiCard.risk{ background: #fff8c9; border-color: #f0de7e; }
+.kpiCard.status{ background: #e9f7ef; border-color: #a6e3bf; }
 
-.kpiCard.yellow {
-  background: #fff7d8;
-  border-color: #ffe1a3;
-  color: #8a5a00;
-}
-.kpiCard.yellow .kpiIcon { background: #ffe1a3; }
-.kpiCard.yellow .kpiBadge { background: #fff1c9; }
-
-.kpiCard.purple {
-  background: #f2eaff;
-  border-color: #e3d3ff;
-  color: #5a1fbf;
-}
-.kpiCard.purple .kpiIcon { background: #e3d3ff; }
-.kpiCard.purple .kpiBadge { background: #efe6ff; }
+.kpiBadge.danger{ background:#ffdada; }
+.kpiBadge.warning{ background:#ffe6c6; }
+.kpiBadge.risk{ background:#fff0a8; }
+.kpiBadge.status{ background:#d8f2e3; }

@@ -1,11 +1,11 @@
 import "../styles/KpiCard.css";
 
-export default function KpiCard({ icon, title, value, subtitle, badge, tone = "plain" }) {
+export default function KpiCard({ icon, title, value, subtitle, badge, tone = "default" }) {
   return (
     <div className={`kpiCard ${tone}`}>
-      <div className="kpiTopRow">
+      <div className="kpiTop">
         <div className="kpiIcon">{icon}</div>
-        <div className="kpiBadge">{badge}</div>
+        <div className={`kpiBadge ${tone}`}>{badge}</div>
       </div>
 
       <div className="kpiTitle">{title}</div>

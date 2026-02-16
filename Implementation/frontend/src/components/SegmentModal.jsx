@@ -112,7 +112,7 @@ export default function SegmentModal({ open, segment, onClose }) {
 
             {/* Why it matters */}
             <div className="sectionCard blue">
-              <div className="sectionTitle">Why This Matters</div>
+              <div className="sectionTitle">Description</div>
               <div className="sectionText">{segment.whyItMatters ?? "N/A"}</div>
             </div>
 
