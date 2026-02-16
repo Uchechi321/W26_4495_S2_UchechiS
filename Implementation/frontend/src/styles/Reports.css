@@ -1,13 +1,81 @@
-.pageTitle {
-  margin-top: 0;
+.reportsPage {
+  padding: 24px;
 }
 
-.pageSubtitle {
-  color: #444;
+.reportsTitle {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
 }
 
-.placeholderBox {
-  border: 1px dashed #aaa;
-  border-radius: 12px;
+.reportsTitle span {
+  color: #2b7cff;
+}
+
+.reportsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reportCard {
+  background: #ffffff;
   padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  display: flex;
+  justify-content: space-between;
+  cursor: pointer;
+  border: 1px solid #eee;
+  transition: 0.2s;
+}
+
+.reportCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.reportCardTop {
+  display: flex;
+  gap: 12px;
+}
+
+.reportIcon {
+  font-size: 32px;
+}
+
+.reportInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.reportName {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.reportMeta {
+  font-size: 13px;
+  color: #777;
+}
+
+.reportArrow {
+  font-size: 24px;
+  color: #aaa;
+  align-self: center;
+}
+
+.emptyReports {
+  padding: 16px;
+  color: #444;
+  font-style: italic;
+}
+
+.reportsError {
+  padding: 20px;
+  color: red;
+}
+
+.reportsLoading {
+  padding: 20px;
 }

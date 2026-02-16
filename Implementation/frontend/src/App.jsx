@@ -29,6 +29,10 @@ export default function App() {
 
           {/* If someone types a wrong URL */}
           <Route path="*" element={<div style={{ padding: 16 }}>Page not found</div>} />
+
+          <Route path="/wells/:wellId/reports" element={<Reports />} />
+          <Route path="/wells/:wellId/report/:reportId" element={<ReportDetail />} />
+
         </Route>
       </Routes>
     </BrowserRouter>

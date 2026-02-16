@@ -40,3 +40,17 @@
   display: grid;
   gap: 14px;
 }
+.reportsBtn {
+  padding: 10px 16px;
+  background: #2b7cff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+  margin-left: 10px;
+}
+.reportsBtn:hover {
+  background: #195fcc;
+}
+

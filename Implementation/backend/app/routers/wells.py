@@ -104,3 +104,25 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
         },
         "segments": segments,
     }
+
+@router.get("/{well_id}/reports")
+def list_reports_for_well(well_id: str, db: Session = Depends(get_db)):
+    from ..models.daily_report import DailyReport
+    
+    reports = (
+        db.query(DailyReport)
+        .filter(DailyReport.well_id == well_id)
+        .order_by(DailyReport.report_date.desc())
+        .all()
+    )
+
+    return [
+        {
+            "report_id": r.report_id,
+            "well_id": r.well_id,
+            "filename": r.source_filename,
+            "report_date": r.report_date.isoformat(),
+            "parser_type": r.parser_type
+        }
+        for r in reports
+    ]

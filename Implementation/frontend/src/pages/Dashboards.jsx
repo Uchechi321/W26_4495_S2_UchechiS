@@ -55,6 +55,14 @@ export default function Dashboard() {
         >
           Predictive Maintenance
         </button>
+
+        <button
+            className="reportsBtn"
+            onClick={() => window.location.href = `/wells/${wellId}/reports`}
+          >
+            View Reports
+        </button>
+
       </div>
 
       <div className="dashGrid">
