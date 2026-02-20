@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../styles/Reports.css";
+import UploadBox from "../components/UploadBox";
 
 export default function Reports() {
   const { wellId } = useParams();
@@ -33,20 +34,15 @@ export default function Reports() {
   return (
     <div className="reportsPage">
 
-      {/* ✅ THIS WAS MISSING FROM YOUR RETURN */}
-      <div className="reportsHeader">
-        <h2 className="reportsTitle">
-          Reports for <span>{wellId}</span>
-        </h2>
+      {/* PAGE TITLE */}
+      <h2 className="reportsTitle">
+        Reports for <span>{wellId}</span>
+      </h2>
 
-        <button
-          className="uploadBtn"
-          onClick={() => navigate(`/wells/${wellId}/upload`)}
-        >
-          + Upload Report
-        </button>
-      </div>
+      {/* ✅ NEW — Upload Box directly on reports page */}
+      <UploadBox wellId={wellId} />
 
+      {/* REPORT LIST */}
       <div className="reportsContainer">
         {reports.length === 0 ? (
           <div className="emptyReports">No reports uploaded yet</div>
@@ -74,6 +70,14 @@ export default function Reports() {
           ))
         )}
       </div>
+
+      {/* FIXED — Back to Wells */}
+      <button 
+        className="backToWellsBtn"
+        onClick={() => navigate("/wells")}
+      >
+        ← Back to Wells
+      </button>
     </div>
   );
 }

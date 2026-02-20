@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 import logging
 from ..models.well import Well
+from fastapi import Form
 
 from ..database import SessionLocal
 from ..services.ingestion_service import ingest_daily_report_pdf
@@ -23,11 +24,12 @@ def get_db():
 
 @router.post("/daily-report")
 async def upload_daily_report(
-    well_id: str,
-    report_date: str,  # YYYY-MM-DD
-    parser_type: str = "TBD",
+    well_id: str = Form(...),
+    report_date: str = Form(...),
+    parser_type: str = Form("TBD"),
+    db: Session = Depends(get_db),
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+
 ):
     logger.info(f"Upload started: {file.filename} | well_id={well_id} | report_date={report_date}")
 

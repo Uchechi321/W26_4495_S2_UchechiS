@@ -1,49 +1,66 @@
+/* Page wrapper */
 .reportsPage {
-  padding: 24px;
+  padding: 32px;
+  background: #f7f9fc;
+  min-height: 100vh;
 }
 
+/* Page title */
 .reportsTitle {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: #1a1a1a;
 }
 
 .reportsTitle span {
   color: #2b7cff;
 }
 
-.reportsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* Upload box spacing */
+.uploadBoxWrapper {
+  margin-bottom: 28px;
 }
 
+/* Reports grid */
+.reportsContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+  margin-top: 10px;
+}
+
+/* Report card */
 .reportCard {
   background: #ffffff;
-  padding: 16px;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+  border: 1px solid #e6e9ef;
+  cursor: pointer;
+  transition: all 0.25s ease;
   display: flex;
   justify-content: space-between;
-  cursor: pointer;
-  border: 1px solid #eee;
-  transition: 0.2s;
+  align-items: center;
 }
 
 .reportCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.12);
 }
 
+/* Left side of card */
 .reportCardTop {
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  align-items: center;
 }
 
 .reportIcon {
-  font-size: 32px;
+  font-size: 36px;
 }
 
+/* Report info */
 .reportInfo {
   display: flex;
   flex-direction: column;
@@ -51,50 +68,63 @@
 
 .reportName {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 17px;
+  color: #1a1a1a;
 }
 
 .reportMeta {
   font-size: 13px;
-  color: #777;
+  color: #6b7280;
+  margin-top: 4px;
 }
 
+/* Arrow */
 .reportArrow {
-  font-size: 24px;
-  color: #aaa;
-  align-self: center;
+  font-size: 22px;
+  color: #9ca3af;
+  transition: 0.2s;
 }
 
+.reportCard:hover .reportArrow {
+  color: #2b7cff;
+  transform: translateX(4px);
+}
+
+/* Empty state */
 .emptyReports {
-  padding: 16px;
-  color: #444;
-  font-style: italic;
-}
-
-.reportsError {
   padding: 20px;
-  color: red;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+  color: #555;
+  font-style: italic;
+  grid-column: 1 / -1;
 }
 
+/* Loading + error */
+.reportsError,
 .reportsLoading {
   padding: 20px;
-}
-.reportsHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  text-align: center;
+  font-size: 16px;
 }
 
-.uploadBtn {
-  background: #007bff;
+/* Back button */
+.backToWellsBtn {
+  margin-top: 32px;
+  background: #0b5cff;
   color: white;
-  padding: 8px 14px;
-  border-radius: 6px;
   border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
   cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.uploadBtn:hover {
-  background: #005fcc;
+.backToWellsBtn:hover {
+  background: #0848cc;
+  transform: translateY(-2px);
 }

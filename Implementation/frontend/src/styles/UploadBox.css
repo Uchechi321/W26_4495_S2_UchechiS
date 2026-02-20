@@ -1,0 +1,122 @@
+/* Upload box container */
+.uploadBox {
+  padding: 28px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e6e9ef;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  margin-bottom: 32px;
+}
+
+/* Title */
+.uploadBoxTitle {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #1a1a1a;
+}
+
+/* Form labels */
+.uploadBoxForm label {
+  display: block;
+  margin-top: 14px;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Inputs */
+.uploadBoxForm input,
+.uploadBoxForm select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+.uploadBoxForm input:focus,
+.uploadBoxForm select:focus {
+  border-color: #2b7cff;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(43, 124, 255, 0.15);
+  outline: none;
+}
+
+/* Drag-and-drop area */
+.uploadDrop {
+  border: 2px dashed #bfc7d5;
+  padding: 28px;
+  text-align: center;
+  border-radius: 12px;
+  cursor: pointer;
+  background: #f8fbff;
+  color: #4b5563;
+  transition: 0.25s ease;
+  margin-top: 6px;
+}
+
+.uploadDrop:hover {
+  background: #eef5ff;
+  border-color: #2b7cff;
+}
+
+/* Upload button */
+.uploadBoxBtn {
+  margin-top: 22px;
+  background: linear-gradient(135deg, #2b7cff, #1a5fd8);
+  color: white;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  transition: 0.25s ease;
+}
+
+.uploadBoxBtn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #1f6fff, #1550b8);
+}
+
+/* Success message */
+.uploadSuccess {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #e9fbe9;
+  border: 1px solid #8ddf8d;
+  color: #256b25;
+  text-align: center;
+}
+
+/* Error message */
+.uploadError {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #ffecec;
+  border: 1px solid #e4a1a1;
+  color: #8a2c2c;
+  text-align: center;
+}
+
+/* Back button */
+.backToReportsBtn {
+  margin-top: 12px;
+  background: #0b5cff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.backToReportsBtn:hover {
+  background: #0848cc;
+  transform: translateY(-2px);
+}

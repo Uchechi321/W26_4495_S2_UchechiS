@@ -44,3 +44,28 @@
 }
 .uploadStatus.success { color: green; }
 .uploadStatus.error { color: red; }
+
+.uploadSuccessBox {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 8px;
+  background: #e9fbe9;
+  border: 1px solid #88d488;
+  text-align: center;
+  color: #2c662d;
+}
+
+.backToReportsBtn {
+  margin-top: 12px;
+  background: #0b5cff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.backToReportsBtn:hover {
+  background: #0848cc;
+}
+
