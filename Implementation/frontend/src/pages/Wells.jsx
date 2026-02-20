@@ -14,6 +14,10 @@ export default function Wells() {
   const [newName, setNewName] = useState("");
   const [newLocation, setNewLocation] = useState("");
 
+  // Modal for selecting well for actions
+  const [actionModal, setActionModal] = useState(false);
+  const [actionType, setActionType] = useState(""); // "reports" or "upload"
+
   // Soft color palette
   const colors = ["#e8f0fe", "#e6f7f1", "#fff7e6", "#f3e8ff", "#e8faff"];
   const getColor = (i) => colors[i % colors.length];
@@ -67,10 +71,15 @@ export default function Wells() {
 
       {/* Quick Actions */}
       <div className="quickActions">
-        <button onClick={() => setShowModal(true)}>➕ Create Well</button>
-        <button onClick={() => navigate("/reports")}>📄 View Reports</button>
-        <button onClick={() => navigate("/upload")}>⬆ Upload Report</button>
+        <button onClick={() => { setActionType("reports"); setActionModal(true); }}>
+          📄 View Reports
+        </button>
+        <button onClick={() => { setActionType("upload"); setActionModal(true); }}>
+          ⬆ Upload Report
+        </button>
       </div>
+
+      <div className="dividerLine"></div>
 
       {/* Stats Bar */}
       <div className="wellsStats">
@@ -101,7 +110,7 @@ export default function Wells() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal: Create Well */}
       {showModal && (
         <div className="modalOverlay">
           <div className="modalCard">
@@ -142,6 +151,34 @@ export default function Wells() {
         </div>
       )}
 
+      {/* Modal: Select Well for Action */}
+      {actionModal && (
+        <div className="modalOverlay">
+          <div className="modalCard">
+            <h3>Select a Well</h3>
+
+            {wells.map((w) => (
+              <button
+                key={w.well_id}
+                className="selectWellBtn"
+                onClick={() => {
+                  setActionModal(false);
+                  if (actionType === "reports") {
+                    navigate(`/wells/${w.well_id}/reports`);
+                  } else {
+                    navigate(`/wells/${w.well_id}/upload`);
+                  }
+                }}
+              >
+                {w.well_id} — {w.well_name}
+              </button>
+            ))}
+
+            <button onClick={() => setActionModal(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
       {/* Wells Grid */}
       <div className="wellsGrid">
         {wells.map((w, i) => (
@@ -168,9 +205,6 @@ export default function Wells() {
               navigate(`/wells/${w.well_id}`);
             }}
           >
-            <div className="wellAvatar">
-              {w.operator ? w.operator[0] : "?"}
-            </div>
 
             <div className="wellId">{w.well_id}</div>
             <div className="wellName">{w.well_name || w.well_id}</div>
