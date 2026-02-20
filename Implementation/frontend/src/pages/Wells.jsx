@@ -113,43 +113,55 @@ export default function Wells() {
       {/* Modal: Create Well */}
       {showModal && (
         <div className="modalOverlay">
-          <div className="modalCard">
-            <h3>Create New Well</h3>
+          <div className="modalCard createWellModal">
+            <h2 className="modalTitle">Create New Well</h2>
 
-            <input
-              placeholder="Well ID"
-              value={newWellId}
-              onChange={(e) => setNewWellId(e.target.value)}
-            />
-            <input
-              placeholder="Well Name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <input
-              placeholder="Location"
-              value={newLocation}
-              onChange={(e) => setNewLocation(e.target.value)}
-            />
+            <div className="modalInputs">
+              <label>Well ID</label>
+              <input
+                placeholder="e.g. WELL-03"
+                value={newWellId}
+                onChange={(e) => setNewWellId(e.target.value)}
+              />
 
-            <button
-              className="createWellBtn2"
-              onClick={async () => {
-                await fetch(
-                  `http://127.0.0.1:8000/wells?well_id=${newWellId}&well_name=${newName}&location=${newLocation}`,
-                  { method: "POST" }
-                );
-                setShowModal(false);
-                window.location.reload();
-              }}
-            >
-              Create
-            </button>
+              <label>Well Name</label>
+              <input
+                placeholder="e.g. Bonga North"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+              />
 
-            <button onClick={() => setShowModal(false)}>Cancel</button>
+              <label>Location</label>
+              <input
+                placeholder="e.g. Lagos"
+                value={newLocation}
+                onChange={(e) => setNewLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="modalActions">
+              <button
+                className="modalCreateBtn"
+                onClick={async () => {
+                  await fetch(
+                    `http://127.0.0.1:8000/wells?well_id=${newWellId}&well_name=${newName}&location=${newLocation}`,
+                    { method: "POST" }
+                  );
+                  setShowModal(false);
+                  window.location.reload();
+                }}
+              >
+                Create Well
+              </button>
+
+              <button className="modalCancelBtn" onClick={() => setShowModal(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
+
 
       {/* Modal: Select Well for Action */}
       {actionModal && (
