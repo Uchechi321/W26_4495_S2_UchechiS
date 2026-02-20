@@ -4,6 +4,7 @@ import "../styles/Wells.css";
 
 export default function Wells() {
   const [wells, setWells] = useState([]);
+  const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -12,6 +13,10 @@ export default function Wells() {
   const [newWellId, setNewWellId] = useState("");
   const [newName, setNewName] = useState("");
   const [newLocation, setNewLocation] = useState("");
+
+  // Soft color palette
+  const colors = ["#e8f0fe", "#e6f7f1", "#fff7e6", "#f3e8ff", "#e8faff"];
+  const getColor = (i) => colors[i % colors.length];
 
   useEffect(() => {
     async function loadWells() {
@@ -31,24 +36,70 @@ export default function Wells() {
     }
 
     loadWells();
+
+    // Load recently viewed wells
+    const stored = JSON.parse(localStorage.getItem("recentWells") || "[]");
+    setRecent(stored);
+
   }, []);
 
   if (loading) return <div style={{ padding: 16 }}>Loading wells…</div>;
   if (error) return <div style={{ padding: 16, color: "crimson" }}>{error}</div>;
 
+  // Stats
+  const total = wells.length;
+  const operators = new Set(wells.map((w) => w.operator)).size;
+
   return (
-    <div className="wellsWrap">
+    <div className="wellsPage">
+
+      {/* Top Section */}
       <div className="wellsTop">
         <div>
           <h1 className="wellsTitle">Wells</h1>
           <div className="wellsSub">Choose a well to open its dashboard view.</div>
         </div>
 
-        {/* Create Well Button */}
         <button className="createWellBtn" onClick={() => setShowModal(true)}>
           + Create Well
         </button>
       </div>
+
+      {/* Quick Actions */}
+      <div className="quickActions">
+        <button onClick={() => setShowModal(true)}>➕ Create Well</button>
+        <button onClick={() => navigate("/reports")}>📄 View Reports</button>
+        <button onClick={() => navigate("/upload")}>⬆ Upload Report</button>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="wellsStats">
+        <div className="statCard">Total Wells: {total}</div>
+        <div className="statCard">Operators: {operators}</div>
+      </div>
+
+      {/* Recently Viewed Wells */}
+      {recent.length > 0 && (
+        <div className="recentSection">
+          <h3 className="recentTitle">Recently Viewed</h3>
+
+          <div className="recentRow">
+            {recent.map((r, i) => (
+              <div
+                key={i}
+                className="recentCard"
+                onClick={() => navigate(`/wells/${r.well_id}`)}
+              >
+                <div className="recentAvatar">
+                  {r.operator ? r.operator[0] : "?"}
+                </div>
+                <div className="recentName">{r.well_name || r.well_id}</div>
+                <div className="recentLoc">{r.location}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -93,21 +144,39 @@ export default function Wells() {
 
       {/* Wells Grid */}
       <div className="wellsGrid">
-        {wells.map((w) => (
+        {wells.map((w, i) => (
           <div
             key={w.well_id}
             className="wellCard"
-            onClick={() => navigate(`/wells/${w.well_id}`)}
-            role="button"
-            tabIndex={0}
+            style={{ "--well-color": getColor(i) }}
+            onClick={() => {
+              // Save to recently viewed
+              const viewed = JSON.parse(localStorage.getItem("recentWells") || "[]");
+
+              const newEntry = {
+                well_id: w.well_id,
+                well_name: w.well_name,
+                location: w.location,
+                operator: w.operator
+              };
+
+              const filtered = viewed.filter(v => v.well_id !== w.well_id);
+              filtered.unshift(newEntry);
+
+              localStorage.setItem("recentWells", JSON.stringify(filtered.slice(0, 3)));
+
+              navigate(`/wells/${w.well_id}`);
+            }}
           >
-            <div className="wellCardTop">
-              <div className="wellId">{w.well_id}</div>
-              <div className="wellBadge">Open</div>
+            <div className="wellAvatar">
+              {w.operator ? w.operator[0] : "?"}
             </div>
 
+            <div className="wellId">{w.well_id}</div>
             <div className="wellName">{w.well_name || w.well_id}</div>
-            <div className="wellLoc">Location: {w.location || "N/A"}</div>
+            <div className="wellLoc">📍 {w.location || "Unknown"}</div>
+
+            <div className="statusBadge status-open">OPEN</div>
 
             <div className="openDash">Open dashboard →</div>
           </div>
