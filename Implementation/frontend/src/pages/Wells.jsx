@@ -3,11 +3,19 @@ import { useNavigate } from "react-router-dom";
 import "../styles/Wells.css";
 
 export default function Wells() {
+  const navigate = useNavigate();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("auth");
+    if (!loggedIn) navigate("/login");
+  }, []);
+
+
   const [wells, setWells] = useState([]);
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   const [showModal, setShowModal] = useState(false);
   const [newWellId, setNewWellId] = useState("");
@@ -64,10 +72,23 @@ export default function Wells() {
           <div className="wellsSub">Choose a well to open its dashboard view.</div>
         </div>
 
-        <button className="createWellBtn" onClick={() => setShowModal(true)}>
-          + Create Well
-        </button>
+        <div className="topRightBtns">
+          <button className="createWellBtn" onClick={() => setShowModal(true)}>
+            + Create Well
+          </button>
+
+          <button
+            className="logoutBtn"
+            onClick={() => {
+              localStorage.removeItem("auth");
+              navigate("/login");
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
+
 
       {/* Quick Actions */}
       <div className="quickActions">
@@ -162,7 +183,6 @@ export default function Wells() {
         </div>
       )}
 
-
       {/* Modal: Select Well for Action */}
       {actionModal && (
         <div className="modalOverlay">
@@ -217,7 +237,6 @@ export default function Wells() {
               navigate(`/wells/${w.well_id}`);
             }}
           >
-
             <div className="wellId">{w.well_id}</div>
             <div className="wellName">{w.well_name || w.well_id}</div>
             <div className="wellLoc">📍 {w.location || "Unknown"}</div>
@@ -228,6 +247,7 @@ export default function Wells() {
           </div>
         ))}
       </div>
+      <div className="loggedInUser">Signed in as {localStorage.getItem("auth")}</div>
     </div>
   );
 }

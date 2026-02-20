@@ -6,6 +6,8 @@ import Reports from "./pages/Reports";
 import ReportDetail from "./pages/ReportDetail";
 import Maintenance from "./pages/Maintenance";
 import UploadReport from "./pages/UploadReport";
+import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 
 import "./App.css";
 
@@ -13,6 +15,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+        {/* 🔹 Public routes (NO LAYOUT) */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<SignUp />} />
+
+        {/* 🔹 Protected routes (WITH LAYOUT) */}
         <Route element={<Layout />}>
 
           <Route path="/" element={<Navigate to="/wells" replace />} />
@@ -21,18 +29,11 @@ export default function App() {
           <Route path="/wells/:wellId" element={<Dashboard />} />
 
           <Route path="/wells/:wellId/reports" element={<Reports />} />
-
-          <Route
-            path="/wells/:wellId/report/:reportId"
-            element={<ReportDetail />}
-          />
+          <Route path="/wells/:wellId/report/:reportId" element={<ReportDetail />} />
 
           <Route path="/wells/:wellId/maintenance" element={<Maintenance />} />
-
-          {/* ✅ FIX: Upload route must be BEFORE the wildcard */}
           <Route path="/wells/:wellId/upload" element={<UploadReport />} />
 
-          {/* Wildcard last */}
           <Route path="*" element={<div style={{ padding: 16 }}>Page not found</div>} />
 
         </Route>

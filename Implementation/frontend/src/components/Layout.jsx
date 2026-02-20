@@ -3,7 +3,7 @@ import "../styles/Layout.css";
 
 export default function Layout() {
   return (
-    <div className="layout">
+    <div className="layoutContainer">
       <aside className="sidebar">
         <h2 className="sidebarTitle">Drilling Ops DSS</h2>
 
@@ -22,11 +22,9 @@ export default function Layout() {
             Reports
           </NavLink>
         </nav>
-
-        <p className="sidebarNote">Week 4: Layout + Navigation</p>
       </aside>
 
-      <main className="content">
+      <main className="layoutContent">
         <Outlet />
       </main>
     </div>
