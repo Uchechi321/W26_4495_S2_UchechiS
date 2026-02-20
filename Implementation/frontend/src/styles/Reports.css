@@ -128,3 +128,20 @@
   background: #0848cc;
   transform: translateY(-2px);
 }
+.deleteReportBtn {
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+  height: fit-content;
+  align-self: center;
+}
+
+.deleteReportBtn:hover {
+  background: #d93636;
+  transform: translateY(-2px);
+}

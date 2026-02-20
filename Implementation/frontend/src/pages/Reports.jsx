@@ -11,6 +11,23 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  async function handleDelete(reportId) {
+      if (!window.confirm("Are you sure you want to delete this report?")) return;
+
+      const res = await fetch(`http://127.0.0.1:8000/reports/${reportId}`, {
+        method: "DELETE"
+      });
+
+      if (!res.ok) {
+        alert("Failed to delete report");
+        return;
+      }
+
+      // Remove from UI
+      setReports((prev) => prev.filter((r) => r.report_id !== reportId));
+    }
+
+
   useEffect(() => {
     async function load() {
       try {
@@ -51,11 +68,11 @@ export default function Reports() {
             <div
               key={r.report_id}
               className="reportCard"
-              onClick={() =>
-                navigate(`/wells/${wellId}/report/${r.report_id}`)
-              }
             >
-              <div className="reportCardTop">
+              <div
+                className="reportCardTop"
+                onClick={() => navigate(`/wells/${wellId}/report/${r.report_id}`)}
+              >
                 <div className="reportIcon">📄</div>
                 <div className="reportInfo">
                   <div className="reportName">{r.filename}</div>
@@ -65,8 +82,17 @@ export default function Reports() {
                 </div>
               </div>
 
-              <div className="reportArrow">→</div>
+              <button
+                className="deleteReportBtn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(r.report_id);
+                }}
+              >
+                🗑 Delete
+              </button>
             </div>
+
           ))
         )}
       </div>
