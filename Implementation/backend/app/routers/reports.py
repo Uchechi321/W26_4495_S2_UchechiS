@@ -76,19 +76,19 @@ def get_report_details(report_id: int, db: Session = Depends(get_db)):
             for o in ops
         ],
     }
-    # ------------------------------------------
-    # DELETE /reports/{report_id} → delete report
-    # ------------------------------------------
-    @router.delete("/{report_id}")
-    def delete_report(report_id: int, db: Session = Depends(get_db)):
-        report = db.query(DailyReport).filter(DailyReport.report_id == report_id).first()
 
-        if not report:
-            raise HTTPException(status_code=404, detail="Report not found")
 
-        # Delete the report
-        db.delete(report)
-        db.commit()
+# ------------------------------------------
+# DELETE /reports/{report_id} → delete report
+# ------------------------------------------
+@router.delete("/{report_id}")
+def delete_report(report_id: int, db: Session = Depends(get_db)):
+    report = db.query(DailyReport).filter(DailyReport.report_id == report_id).first()
 
-        return {"status": "success", "message": "Report deleted"}
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
 
+    db.delete(report)
+    db.commit()
+
+    return {"status": "success", "message": "Report deleted"}
