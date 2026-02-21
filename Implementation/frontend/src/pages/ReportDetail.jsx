@@ -3,6 +3,55 @@ import { useParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import "../styles/ReportDetail.css";
 
+// ----------------------
+// CLASSIFICATION FUNCTION
+// ----------------------
+function classifyOperation(op) {
+  const desc = (op.description || "").toLowerCase();
+  const npt = Number(op.npt_hours || 0);
+
+  const criticalKeywords = [
+    "stuck",
+    "stuck pipe",
+    "Pack-off",
+    "lost string",
+    "twist off",
+    "well control",
+    "severe loss",
+    "major loss",
+    "circulation loss severe",
+  ];
+
+  const warningKeywords = [
+    "loss",
+    "lost circulation",
+    "torque high",
+    "drag",
+    "vibration",
+    "stall",
+    "tight spot",
+    "circulation issue",
+  ];
+
+  // Critical by keyword
+  if (criticalKeywords.some(k => desc.includes(k))) {
+    return "critical";
+  }
+
+  // Critical by NPT
+  if (npt >= 5) return "critical";
+
+  // Warning by keyword
+  if (warningKeywords.some(k => desc.includes(k))) {
+    return "warning";
+  }
+
+  // Warning by NPT
+  if (npt >= 2) return "warning";
+
+  return "normal";
+}
+
 export default function ReportDetail() {
   const { wellId, reportId } = useParams();
 
@@ -176,8 +225,36 @@ export default function ReportDetail() {
                   )}
                 </td>
 
-                <td>{op.duration_hours}</td>
-                <td>{op.npt_hours}</td>
+                <td>
+                  {editing ? (
+                    <input
+                      type="number"
+                      value={op.duration_hours}
+                      onChange={(e) => {
+                        const copy = [...editedOps];
+                        copy[i].duration_hours = Number(e.target.value);
+                        setEditedOps(copy);
+                      }}
+                    />
+                  ) : (
+                    op.duration_hours
+                  )}
+                </td>
+                <td>
+                  {editing ? (
+                    <input
+                      type="number"
+                      value={op.npt_hours}
+                      onChange={(e) => {
+                        const copy = [...editedOps];
+                        copy[i].npt_hours = Number(e.target.value);
+                        setEditedOps(copy);
+                      }}
+                    />
+                  ) : (
+                    op.npt_hours
+                  )}
+                </td>
 
                 <td>
                   {editing ? (

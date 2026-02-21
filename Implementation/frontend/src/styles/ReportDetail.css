@@ -212,3 +212,27 @@
 .backBtn:hover {
   background: #d0d0d0;
 }
+/* Severity tags small badge */
+.levelTag {
+  text-transform: capitalize;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.levelTag.normal {
+  background: #4caf50;
+  color: white;
+}
+
+.levelTag.warning {
+  background: #ffb300;
+  color: black;
+}
+
+.levelTag.critical {
+  background: #d32f2f;
+  color: white;
+}

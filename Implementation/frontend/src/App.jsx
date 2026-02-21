@@ -9,6 +9,7 @@ import UploadReport from "./pages/UploadReport";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import EditReport from "./pages/EditReport";
+import Home from "./pages/Home";
 
 import "./App.css";
 
@@ -18,13 +19,12 @@ export default function App() {
       <Routes>
 
         {/* 🔹 Public routes (NO LAYOUT) */}
+        <Route path="/" element={<Home />} />     {/* ← Home is now clean */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
 
         {/* 🔹 Protected routes (WITH LAYOUT) */}
         <Route element={<Layout />}>
-
-          <Route path="/" element={<Navigate to="/wells" replace />} />
 
           <Route path="/wells" element={<Wells />} />
           <Route path="/wells/:wellId" element={<Dashboard />} />
@@ -37,6 +37,7 @@ export default function App() {
 
           <Route path="/reports/edit/:reportId" element={<EditReport />} />
 
+          {/* 404 */}
           <Route path="*" element={<div style={{ padding: 16 }}>Page not found</div>} />
 
         </Route>

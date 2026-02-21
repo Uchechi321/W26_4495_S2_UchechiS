@@ -16,7 +16,7 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
       text.includes("kick") ||
       text.includes("well control") ||
       text.includes("blowout") ||
-      text.includes("pack off")
+      text.includes("Pack-off")
     ) {
       return "critical";
     }

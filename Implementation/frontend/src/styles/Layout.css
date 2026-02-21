@@ -3,6 +3,7 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
+  
 }
 
 /* -------------------------------------------
@@ -20,7 +21,7 @@ html, body {
   width: 220px;
   padding: 16px;
   border-right: 1px solid #ddd;
-  background: white;
+  background: #d2e2f4;
 }
 
 .sidebarTitle {

@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Login.css";
 
-
-
 export default function Login() {
   const navigate = useNavigate();
 
@@ -12,26 +10,31 @@ export default function Login() {
   const [error, setError] = useState("");
 
   function handleLogin(e) {
-        e.preventDefault();
+    e.preventDefault();
 
-        const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
 
-        const found = users.find(
-            (u) => u.email === email && u.password === password
-        );
+    const found = users.find(
+      (u) => u.email === email && u.password === password
+    );
 
-        if (found) {
-            localStorage.setItem("auth", email); // store logged-in user
-            navigate("/wells");
-        } else {
-            setError("Invalid email or password");
-        }
+    if (found) {
+      localStorage.setItem("auth", email);
+      navigate("/wells");
+    } else {
+      setError("Invalid email or password");
     }
+  }
 
+  // 🔹 Arrow back to home
+  function goHome() {
+    navigate("/");
+  }
 
   return (
     <div className="loginPage">
       <div className="loginCard">
+
         <h1 className="loginTitle">Drilling Ops DSS</h1>
         <p className="loginSubtitle">Sign in to continue</p>
 
@@ -59,6 +62,10 @@ export default function Login() {
           <button type="submit" className="loginBtn">
             Sign In →
           </button>
+          {/* 🔹 Arrow icon */}
+            <div className="backArrow" onClick={goHome}>
+                ← Back
+            </div>
 
           <div className="loginSwitch">
             Don’t have an account?{" "}
