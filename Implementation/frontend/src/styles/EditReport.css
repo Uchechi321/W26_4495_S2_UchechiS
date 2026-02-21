@@ -1,0 +1,92 @@
+/* ===== Edit Report Container ===== */
+.edit-report-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 25px;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    font-family: "Inter", sans-serif;
+}
+
+/* ===== Header ===== */
+.edit-report-container h2 {
+    font-size: 26px;
+    margin-bottom: 20px;
+    color: #333;
+    font-weight: 600;
+}
+
+/* ===== Form Labels ===== */
+.edit-report-container label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #444;
+}
+
+/* ===== Inputs & Textareas ===== */
+.edit-report-container input[type="text"],
+.edit-report-container input[type="date"],
+.edit-report-container select,
+.edit-report-container textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 18px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-report-container textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.edit-report-container input:focus,
+.edit-report-container select:focus,
+.edit-report-container textarea:focus {
+    border-color: #4A90E2;
+    box-shadow: 0 0 4px rgba(74,144,226,0.4);
+    outline: none;
+}
+
+/* ===== Buttons ===== */
+.edit-report-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.edit-report-btn-save {
+    background: #4A90E2;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background 0.25s ease;
+}
+
+.edit-report-btn-save:hover {
+    background: #3b7ccd;
+}
+
+.edit-report-btn-cancel {
+    background: #ddd;
+    color: #333;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background 0.25s ease;
+}
+
+.edit-report-btn-cancel:hover {
+    background: #c6c6c6;
+}
