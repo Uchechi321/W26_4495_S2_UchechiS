@@ -92,3 +92,23 @@ def delete_report(report_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"status": "success", "message": "Report deleted"}
+
+from pydantic import BaseModel
+
+class OperationUpdate(BaseModel):
+    operations: list
+
+@router.put("/{report_id}/operations")
+def update_operations(report_id: int, payload: OperationUpdate, db: Session = Depends(get_db)):
+    for op_data in payload.operations:
+        op = db.query(Operation).filter(Operation.operation_id == op_data["operation_id"]).first()
+        if not op:
+            continue
+
+        op.depth_from = op_data["depth_from"]
+        op.depth_to = op_data["depth_to"]
+        op.operation_type = op_data["operation_type"]
+        op.description = op_data["description"]
+
+    db.commit()
+    return {"status": "success"}

@@ -23,6 +23,8 @@ def parse_nnpc_format_a(pdf_bytes: bytes) -> Dict[str, Any]:
         t = (phase + " " + op_text).upper()
         if "DRL" in t:
             return "Drilling"
+        if "CSG" in t:
+            return "Drilling"
         if "REAM" in t:
             return "Reaming"
         if "CIRC" in t:

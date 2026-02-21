@@ -1,8 +1,40 @@
 import "../styles/Wellbore.css";
 
 export default function Wellbore({ depthMax, segments, onSelectSegment }) {
-  // segments example:
-  // [{ from: 0, to: 200, level: "normal" }, { from: 600, to: 800, level:"warning" }]
+
+  // 🔥 1. Auto-classify operation severity using keywords
+  function classifyLevel(description = "") {
+    const text = description.toLowerCase();
+
+    // CRITICAL EVENTS
+    if (
+      text.includes("stuck") ||
+      text.includes("stuck pipe") ||
+      text.includes("pipe stuck") ||
+      text.includes("loss") ||
+      text.includes("lost circulation") ||
+      text.includes("kick") ||
+      text.includes("well control") ||
+      text.includes("blowout") ||
+      text.includes("pack off")
+    ) {
+      return "critical";
+    }
+
+    // WARNING EVENTS
+    if (
+      text.includes("issue") ||
+      text.includes("problem") ||
+      text.includes("vibration") ||
+      text.includes("torque") ||
+      text.includes("drag") ||
+      text.includes("slow")
+    ) {
+      return "warning";
+    }
+
+    return "normal";
+  }
 
   return (
     <div className="wellboreWrap">
@@ -32,15 +64,26 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
 
         <div className="pipeArea">
           <div className="pipe">
-            {segments.map((s, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className={`segment ${s.level}`}
-                title={`${s.level.toUpperCase()} (${s.from}m–${s.to}m)`}
-                onClick={() => onSelectSegment?.(s)}
-              />
-            ))}
+            {segments.map((seg, idx) => {
+              // 🔥 2. Auto-detect severity if backend didn't provide one
+              const autoLevel = classifyLevel(seg.description || "");
+              const finalLevel = seg.level || autoLevel;
+
+              // 🔥 3. Height scaling based on depth range
+              const heightPercent =
+                depthMax > 0 ? ((seg.to - seg.from) / depthMax) * 100 : 0;
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`segment ${finalLevel}`}
+                  title={`${finalLevel.toUpperCase()} (${seg.from}m–${seg.to}m)`}
+                  style={{ height: `${heightPercent}%` }}
+                  onClick={() => onSelectSegment?.(seg)}
+                />
+              );
+            })}
           </div>
         </div>
 
