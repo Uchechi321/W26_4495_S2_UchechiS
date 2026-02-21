@@ -78,12 +78,7 @@ export default function UploadBox({ wellId }) {
       {status === "success" && (
         <div className="uploadSuccess">
           Upload successful! 🎉  
-          <button
-            className="backToReportsBtn"
-            onClick={() => window.location.href = `/wells/${wellId}/reports`}
-          >
-            ← Back to Reports
-          </button>
+          
         </div>
       )}
 
