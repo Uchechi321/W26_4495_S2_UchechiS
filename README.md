@@ -20,10 +20,10 @@ and explainable predictive maintenance indicators based on recorded operational 
 - Implementation/: frontend, backend, and datasets
 
 
-## Installation Instructions
+# Installation Instructions
 This section explains how to install and run the project on your machine, including both backend (Python) and frontend (React).
 
-# Backend (Python)
+## Backend (Python)
 1. Install Python:
    Ensure you have Python 3.9+ installed:
    - python --version
@@ -42,7 +42,7 @@ This section explains how to install and run the project on your machine, includ
 4. Run the Backend Server:
    uvicorn app.main:app --reload
 
-# Frontend (React)
+## Frontend (React)
 1. Install Node.js:
    Verify installation:
    - node -v
@@ -58,7 +58,7 @@ This section explains how to install and run the project on your machine, includ
    npm start
 
    The frontend will be available at:
-   http://localhost:3000
+   http://localhost:5173/
 
 5. ▶️ Running the Full Demo
 Once both servers are running:
