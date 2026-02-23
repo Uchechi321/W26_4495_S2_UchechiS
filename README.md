@@ -24,11 +24,14 @@ and explainable predictive maintenance indicators based on recorded operational 
 This section explains how to install and run the project on your machine, including both backend (Python) and frontend (React).
 
 ## Backend (Python)
-1. Install Python:
+1. Navigate to the Frontend Folder:
+   cd backend
+   
+2. Install Python:
    Ensure you have Python 3.9+ installed:
    - python --version
 
-2. Create and Activate a Virtual Environment:
+3. Create and Activate a Virtual Environment:
    - Create:
      python -m venv venv
    - Activate (Windows):
@@ -36,10 +39,10 @@ This section explains how to install and run the project on your machine, includ
    - Activate (macOS/Linux):
      source venv/bin/activate
 
-3. Install Dependencies:
+4. Install Dependencies:
    pip install -r requirements.txt
 
-4. Run the Backend Server:
+5. Run the Backend Server:
    uvicorn app.main:app --reload
 
 ## Frontend (React)
