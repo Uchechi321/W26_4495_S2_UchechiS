@@ -19,3 +19,49 @@ and explainable predictive maintenance indicators based on recorded operational 
 - ReportsAndDocuments/: proposal, progress reports, and final documentation
 - Implementation/: frontend, backend, and datasets
 
+Installation Instructions
+Backend (Python)
+1. Install Python
+
+Ensure you have Python 3.9+ installed:
+
+python --version
+2. Create and Activate a Virtual Environment
+Create
+python -m venv venv
+Activate (Windows)
+venv\Scripts\activate
+Activate (macOS/Linux)
+source venv/bin/activate
+3. Install Dependencies
+pip install -r requirements.txt
+4. Run the Backend Server
+uvicorn app.main:app --reload
+Frontend (React)
+1. Install Node.js
+
+Verify installation:
+
+node -v
+npm -v
+2. Navigate to the Frontend Folder
+cd frontend
+3. Install Frontend Dependencies
+npm install
+4. Start the React Development Server
+npm start
+
+Frontend will be available at:
+
+http://localhost:3000
+
+5. ▶️ Running the Full Demo
+Once both servers are running:
+
+Backend runs on something like:
+http://localhost:8000
+
+Frontend runs on:
+http://localhost:3000
+
+The frontend will automatically communicate with the backend if your API URLs are configured correctly.
