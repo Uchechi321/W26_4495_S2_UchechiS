@@ -58,7 +58,7 @@ This section explains how to install and run the project on your machine, includ
    npm install
 
 4. Start the React Development Server:
-   npm start
+   npm run dev
 
    The frontend will be available at:
    http://localhost:5173/
