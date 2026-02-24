@@ -34,10 +34,11 @@ export default function Home() {
       </p>
 
       <div className="homeFeatures">
-        <span className="homeFeature">Casing & liner design</span>
-        <span className="homeFeature">Mud weight & window checks</span>
-        <span className="homeFeature">Dogleg severity & trajectory control</span>
-      </div>
+            <span className="homeFeature">Automated PDF-to-Operations Parsing</span>
+            <span className="homeFeature">Depth-Based Wellbore Visualization</span>
+            <span className="homeFeature">Predictive Maintenance & Risk Scoring</span>
+        </div>
+
 
       <button className="homeBtn" onClick={() => navigate("/login")}>
         Enter Dashboard

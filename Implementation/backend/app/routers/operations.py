@@ -130,13 +130,15 @@ def get_segments_for_well(
             segments.append({
                 "from": float(d_from),
                 "to": float(d_to),
-                "level": level,
+                "level": level,   # ✅ FIXED
+                "description": getattr(op, "description", None),  # ✅ FIXED
                 "eventType": getattr(op, "operation_type", "Other"),
                 "operationType": getattr(op, "operation_type", "Other"),
                 "whyItMatters": getattr(op, "description", None),
                 "nptHours": getattr(op, "npt_hours", None),
                 "recordedAt": str(getattr(rep, "report_date", "")) if getattr(rep, "report_date", None) else None,
             })
+
 
         return {
             "well_id": well_id,
@@ -168,7 +170,8 @@ def get_segments_for_well(
         segments.append({
             "from": float(d_from),
             "to": float(d_to),
-            "level": level,
+            "level": level,   # ✅ FIXED
+            "description": getattr(op, "description", None),  # ✅ FIXED
             "eventType": getattr(op, "operation_type", "Other"),
             "operationType": getattr(op, "operation_type", "Other"),
             "whyItMatters": getattr(op, "description", None),
@@ -176,8 +179,76 @@ def get_segments_for_well(
             "recordedAt": None,
         })
 
+
     return {
         "well_id": well_id,
         "depthMax": depth_max,
+        "segments": segments,
+    }
+
+@router.get("/{well_id}/dashboard")
+def get_dashboard(well_id: str, db: Session = Depends(get_db)):
+    # Load all operations for this well
+    ops = (
+        db.query(Operation)
+        .filter(Operation.well_id == well_id)
+        .order_by(Operation.operation_id.asc())
+        .all()
+    )
+
+    if not ops:
+        return {
+            "kpis": {
+                "depthMax": 0,
+                "nptHours": 0,
+                "eventCount": 0,
+                "criticalEvents": 0,
+                "highRiskZones": 0,
+                "maintenanceRisk": "Low",
+            },
+            "segments": [],
+        }
+
+    # Compute KPIs
+    depth_max = max(float(op.depth_to or 0) for op in ops)
+
+    total_npt = sum(float(op.npt_hours or 0) for op in ops)
+
+    event_count = len(ops)
+
+    critical_events = sum(
+        1 for op in ops
+        if _level_from_op(op) == "critical"
+    )
+
+    high_risk_zones = critical_events  # or your own logic
+
+    # Build segments (reuse your existing logic)
+    segments = []
+    for op in ops:
+        if op.depth_from is None or op.depth_to is None:
+            continue
+
+        segments.append({
+            "from": float(op.depth_from),
+            "to": float(op.depth_to),
+            "level": _level_from_op(op),
+            "description": op.description,
+            "eventType": op.operation_type,
+            "operationType": op.operation_type,
+            "whyItMatters": op.description,
+            "nptHours": op.npt_hours,
+            "recordedAt": None,
+        })
+
+    return {
+        "kpis": {
+            "depthMax": depth_max,
+            "nptHours": total_npt,
+            "eventCount": event_count,
+            "criticalEvents": critical_events,
+            "highRiskZones": high_risk_zones,
+            "maintenanceRisk": "High" if critical_events > 0 else "Low",
+        },
         "segments": segments,
     }

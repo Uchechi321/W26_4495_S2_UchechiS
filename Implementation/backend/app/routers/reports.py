@@ -100,15 +100,51 @@ class OperationUpdate(BaseModel):
 
 @router.put("/{report_id}/operations")
 def update_operations(report_id: int, payload: OperationUpdate, db: Session = Depends(get_db)):
-    for op_data in payload.operations:
-        op = db.query(Operation).filter(Operation.operation_id == op_data["operation_id"]).first()
-        if not op:
-            continue
 
-        op.depth_from = op_data["depth_from"]
-        op.depth_to = op_data["depth_to"]
-        op.operation_type = op_data["operation_type"]
-        op.description = op_data["description"]
+    for op_data in payload.operations:
+        op_id = op_data.get("operation_id")
+
+        if op_id:  
+            # UPDATE existing operation
+            op = db.query(Operation).filter(Operation.operation_id == op_id).first()
+            if not op:
+                continue
+
+            op.depth_from = op_data["depth_from"]
+            op.depth_to = op_data["depth_to"]
+            op.operation_type = op_data["operation_type"]
+            op.description = op_data["description"]
+            op.duration_hours = op_data.get("duration_hours", 0)
+            op.npt_hours = op_data.get("npt_hours", 0)
+
+        else:
+            # CREATE new operation
+            new_op = Operation(
+                report_id=report_id,
+                depth_from=op_data["depth_from"],
+                depth_to=op_data["depth_to"],
+                operation_type=op_data["operation_type"],
+                description=op_data["description"],
+                duration_hours=op_data.get("duration_hours", 0),
+                npt_hours=op_data.get("npt_hours", 0)
+            )
+            db.add(new_op)
 
     db.commit()
     return {"status": "success"}
+
+@router.put("/operations/{op_id}")
+def update_operation(op_id: int, payload: dict, db: Session = Depends(get_db)):
+    op = db.query(Operation).filter(Operation.operation_id == op_id).first()
+    if not op:
+        raise HTTPException(404, "Operation not found")
+
+    op.description = payload.get("description", op.description)
+    op.operation_type = payload.get("operation_type", op.operation_type)
+    op.depth_from = payload.get("depth_from", op.depth_from)
+    op.depth_to = payload.get("depth_to", op.depth_to)
+    op.npt_hours = payload.get("npt_hours", op.npt_hours)
+
+    db.commit()
+    db.refresh(op)
+    return {"message": "Operation updated", "operation": op}

@@ -1,69 +1,26 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import "../styles/ReportDetail.css";
 
-// ----------------------
-// CLASSIFICATION FUNCTION
-// ----------------------
-function classifyOperation(op) {
-  const desc = (op.description || "").toLowerCase();
-  const npt = Number(op.npt_hours || 0);
-
-  const criticalKeywords = [
-    "stuck",
-    "stuck pipe",
-    "Pack-off",
-    "lost string",
-    "twist off",
-    "well control",
-    "severe loss",
-    "major loss",
-    "circulation loss severe",
-  ];
-
-  const warningKeywords = [
-    "loss",
-    "lost circulation",
-    "torque high",
-    "drag",
-    "vibration",
-    "stall",
-    "tight spot",
-    "circulation issue",
-  ];
-
-  // Critical by keyword
-  if (criticalKeywords.some(k => desc.includes(k))) {
-    return "critical";
-  }
-
-  // Critical by NPT
-  if (npt >= 5) return "critical";
-
-  // Warning by keyword
-  if (warningKeywords.some(k => desc.includes(k))) {
-    return "warning";
-  }
-
-  // Warning by NPT
-  if (npt >= 2) return "warning";
-
-  return "normal";
-}
+// ❌ REMOVED classifyOperation()
+// ReportDetail should NOT classify events.
+// Only Wellbore handles color coding.
 
 export default function ReportDetail() {
   const { wellId, reportId } = useParams();
+  const navigate = useNavigate();
 
   const [report, setReport] = useState(null);
   const [operations, setOperations] = useState([]);
+  const [editedOps, setEditedOps] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
 
-  const [editing, setEditing] = useState(false);
-  const [editedOps, setEditedOps] = useState([]);
-  const navigate = useNavigate();
-
+  // --------------------------
+  // LOAD REPORT
+  // --------------------------
   useEffect(() => {
     async function load() {
       try {
@@ -75,8 +32,9 @@ export default function ReportDetail() {
         setReport(data.report);
         setOperations(data.operations);
 
-        // deep clone for editing state
+        // deep clone
         setEditedOps(JSON.parse(JSON.stringify(data.operations)));
+
       } catch (e) {
         setError(e.message);
       } finally {
@@ -85,27 +43,43 @@ export default function ReportDetail() {
     }
 
     load();
-  }, [wellId, reportId]);
+  }, [reportId]);
 
   // --------------------------
   // SAVE CHANGES
   // --------------------------
   async function handleSave() {
+
+    const payload = {
+      operations: editedOps.map(op => ({
+        operation_id: op.operation_id ?? null,
+        report_id: Number(reportId),
+        well_id: Number(wellId),
+
+        depth_from: Number(op.depth_from),
+        depth_to: Number(op.depth_to),
+        operation_type: op.operation_type,
+        description: op.description,
+        duration_hours: Number(op.duration_hours),
+        npt_hours: Number(op.npt_hours),
+      }))
+    };
+
     const res = await fetch(
       `http://127.0.0.1:8000/reports/${reportId}/operations`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operations: editedOps }),
+        body: JSON.stringify(payload),
       }
     );
 
     if (!res.ok) {
-      alert("Failed to update");
+      alert("Failed to update report operations.");
       return;
     }
 
-    alert("Operations updated!");
+    alert("Saved successfully!");
     setOperations(editedOps);
     setEditing(false);
   }
@@ -124,6 +98,10 @@ export default function ReportDetail() {
   // --------------------------
   function addRow() {
     const newRow = {
+      operation_id: null,
+      report_id: Number(reportId),
+      well_id: Number(wellId),
+
       depth_from: 0,
       depth_to: 0,
       operation_type: "",
@@ -142,7 +120,7 @@ export default function ReportDetail() {
     <div className="reportDetailPage">
 
       <button 
-        className="backBtn" 
+        className="backBtn"
         onClick={() => navigate(`/wells/${wellId}/reports`)}
       >
         ← Back to Reports
@@ -184,13 +162,11 @@ export default function ReportDetail() {
                       value={op.depth_from}
                       onChange={(e) => {
                         const copy = [...editedOps];
-                        copy[i].depth_from = Number(e.target.value);
+                        copy[i].depth_from = e.target.value;
                         setEditedOps(copy);
                       }}
                     />
-                  ) : (
-                    op.depth_from
-                  )}
+                  ) : op.depth_from}
                 </td>
 
                 <td>
@@ -200,13 +176,11 @@ export default function ReportDetail() {
                       value={op.depth_to}
                       onChange={(e) => {
                         const copy = [...editedOps];
-                        copy[i].depth_to = Number(e.target.value);
+                        copy[i].depth_to = e.target.value;
                         setEditedOps(copy);
                       }}
                     />
-                  ) : (
-                    op.depth_to
-                  )}
+                  ) : op.depth_to}
                 </td>
 
                 <td>
@@ -220,9 +194,7 @@ export default function ReportDetail() {
                         setEditedOps(copy);
                       }}
                     />
-                  ) : (
-                    op.operation_type
-                  )}
+                  ) : op.operation_type}
                 </td>
 
                 <td>
@@ -232,14 +204,13 @@ export default function ReportDetail() {
                       value={op.duration_hours}
                       onChange={(e) => {
                         const copy = [...editedOps];
-                        copy[i].duration_hours = Number(e.target.value);
+                        copy[i].duration_hours = e.target.value;
                         setEditedOps(copy);
                       }}
                     />
-                  ) : (
-                    op.duration_hours
-                  )}
+                  ) : op.duration_hours}
                 </td>
+
                 <td>
                   {editing ? (
                     <input
@@ -247,13 +218,11 @@ export default function ReportDetail() {
                       value={op.npt_hours}
                       onChange={(e) => {
                         const copy = [...editedOps];
-                        copy[i].npt_hours = Number(e.target.value);
+                        copy[i].npt_hours = e.target.value;
                         setEditedOps(copy);
                       }}
                     />
-                  ) : (
-                    op.npt_hours
-                  )}
+                  ) : op.npt_hours}
                 </td>
 
                 <td>
@@ -266,9 +235,7 @@ export default function ReportDetail() {
                         setEditedOps(copy);
                       }}
                     />
-                  ) : (
-                    op.description
-                  )}
+                  ) : op.description}
                 </td>
 
                 {editing && (
@@ -281,6 +248,7 @@ export default function ReportDetail() {
                     </button>
                   </td>
                 )}
+
               </tr>
             ))}
           </tbody>
@@ -313,6 +281,7 @@ export default function ReportDetail() {
             </button>
           </div>
         )}
+
       </div>
     </div>
   );

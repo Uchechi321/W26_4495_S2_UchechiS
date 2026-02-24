@@ -2,33 +2,39 @@ import "../styles/Wellbore.css";
 
 export default function Wellbore({ depthMax, segments, onSelectSegment }) {
 
-  // 🔥 1. Auto-classify operation severity using keywords
+  // 1️⃣ Auto-classify operation severity using keywords
   function classifyLevel(description = "") {
     const text = description.toLowerCase();
 
-    // CRITICAL EVENTS
+    // ---- CRITICAL EVENTS ----
     if (
       text.includes("stuck") ||
       text.includes("stuck pipe") ||
       text.includes("pipe stuck") ||
-      text.includes("loss") ||
       text.includes("lost circulation") ||
+      text.includes("loss of circulation") ||
+      text.includes("loss") ||
       text.includes("kick") ||
       text.includes("well control") ||
       text.includes("blowout") ||
-      text.includes("Pack-off")
+      text.includes("pack-off") ||       // FIXED
+      text.includes("pack off")
+                // alternate phrasing
     ) {
       return "critical";
     }
 
-    // WARNING EVENTS
+    // ---- WARNING EVENTS ----
     if (
       text.includes("issue") ||
       text.includes("problem") ||
       text.includes("vibration") ||
       text.includes("torque") ||
       text.includes("drag") ||
-      text.includes("slow")
+      text.includes("slow") ||
+      text.includes("tight spot") ||
+      text.includes("overpull") ||
+      text.includes("high drag")
     ) {
       return "warning";
     }
@@ -39,12 +45,11 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
   return (
     <div className="wellboreWrap">
       <div className="depthAxis">
-        <div>0 m</div>
-        <div>500 m</div>
-        <div>1000 m</div>
-        <div>1500 m</div>
-        <div>{depthMax} m</div>
+        {[0, depthMax * 0.25, depthMax * 0.5, depthMax * 0.75, depthMax].map((d, i) => (
+          <div key={i}>{Math.round(d)} m</div>
+        ))}
       </div>
+
 
       <div className="wellPanel">
         <div className="wellHeader">
@@ -65,11 +70,14 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
         <div className="pipeArea">
           <div className="pipe">
             {segments.map((seg, idx) => {
-              // 🔥 2. Auto-detect severity if backend didn't provide one
-              const autoLevel = classifyLevel(seg.description || "");
-              const finalLevel = seg.level || autoLevel;
 
-              // 🔥 3. Height scaling based on depth range
+              // 2️⃣ Auto-classify if backend didn’t provide level
+              const autoLevel = classifyLevel(seg.description || "");
+
+              // 3️⃣ Ensure final level ALWAYS lowercase (IMPORTANT)
+              const finalLevel = (seg.level || autoLevel).toLowerCase();
+
+              // 4️⃣ Height based on interval
               const heightPercent =
                 depthMax > 0 ? ((seg.to - seg.from) / depthMax) * 100 : 0;
 

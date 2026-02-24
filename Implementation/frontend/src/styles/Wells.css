@@ -1,4 +1,10 @@
 /* Page */
+
+.wellsPage {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
 .wellsPage {
   padding: 32px;
   background: #f7f9fc;
