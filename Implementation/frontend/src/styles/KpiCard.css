@@ -6,6 +6,19 @@
   box-shadow: 0 1px 0 rgba(0,0,0,0.03);
 }
 
+.kpiCardClickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.kpiCardClickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.kpiCardClickable:focus {
+  outline: 2px solid #1f5fff;
+  outline-offset: 2px;
+}
+
 .kpiTop{
   display:flex;
   justify-content:space-between;

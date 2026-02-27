@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models.daily_report import DailyReport
 from ..models.operation import Operation
+from ..models.event import Event
 from ..models.mud import MudProperties
 from ..models.equipment import Equipment
 
@@ -88,7 +89,7 @@ def get_report_details(report_id: int, db: Session = Depends(get_db)):
 
 
 # ------------------------------------------
-# DELETE /reports/{report_id} → delete report
+# DELETE /reports/{report_id} → delete report and all related data
 # ------------------------------------------
 @router.delete("/{report_id}")
 def delete_report(report_id: int, db: Session = Depends(get_db)):
@@ -97,6 +98,11 @@ def delete_report(report_id: int, db: Session = Depends(get_db)):
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
+    # Delete related records first (so dashboard eventCount and KPIs stay in sync)
+    db.query(Event).filter(Event.report_id == report_id).delete(synchronize_session=False)
+    db.query(Operation).filter(Operation.report_id == report_id).delete(synchronize_session=False)
+    db.query(MudProperties).filter(MudProperties.report_id == report_id).delete(synchronize_session=False)
+    db.query(Equipment).filter(Equipment.report_id == report_id).delete(synchronize_session=False)
     db.delete(report)
     db.commit()
 

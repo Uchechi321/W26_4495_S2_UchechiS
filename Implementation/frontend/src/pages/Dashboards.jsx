@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Wellbore from "../components/Wellbore";
 import KpiCard from "../components/KpiCard";
 import SegmentModal from "../components/SegmentModal";
+import KpiModal from "../components/KpiModal";
 import "../styles/Dashboards.css";
 
 export default function Dashboard() {
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedSegment, setSelectedSegment] = useState(null);
+  const [kpiModal, setKpiModal] = useState(null); // { title, text } or null
 
   useEffect(() => {
     async function load() {
@@ -83,6 +85,7 @@ export default function Dashboard() {
             subtitle="Total across all events"
             badge="NPT"
             tone="danger"
+            onClick={() => setKpiModal({ title: "Non-Productive Time", text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed. This includes equipment failures, weather, and other unplanned events." })}
           />
 
           <KpiCard
@@ -92,6 +95,7 @@ export default function Dashboard() {
             subtitle={`${k.criticalEvents} critical events`}
             badge="Events"
             tone="warning"
+            onClick={() => setKpiModal({ title: "Event Count", text: "Event Count is the number of distinct operations or events recorded in the reports for this well." })}
           />
 
           <KpiCard
@@ -101,6 +105,7 @@ export default function Dashboard() {
             subtitle="Depth segments flagged"
             badge="Risk"
             tone="risk"
+            onClick={() => setKpiModal({ title: "High-Risk Zones", text: "High-Risk Zones are depth segments that have been flagged due to NPT, stuck pipe, or other critical indicators." })}
           />
 
           <KpiCard
@@ -110,6 +115,7 @@ export default function Dashboard() {
             subtitle="Prototype rule-based risk"
             badge="Status"
             tone="status"
+            onClick={() => setKpiModal({ title: "Maintenance Risk", text: "Maintenance Risk is a rule-based indicator of how likely the well may need maintenance based on critical events and NPT." })}
           />
         </aside>
       </div>
@@ -118,6 +124,13 @@ export default function Dashboard() {
         open={!!selectedSegment}
         segment={selectedSegment}
         onClose={() => setSelectedSegment(null)}
+      />
+
+      <KpiModal
+        open={!!kpiModal}
+        title={kpiModal?.title ?? ""}
+        text={kpiModal?.text ?? ""}
+        onClose={() => setKpiModal(null)}
       />
     </div>
   );
