@@ -22,8 +22,7 @@ app.include_router(upload.router)
 app.include_router(wells.router)
 app.include_router(operations.router)
 app.include_router(reports.router)
-app.include_router(predictive.router)
-app.include_router(predictive.router)
+
 
 Base.metadata.create_all(bind=engine)
 

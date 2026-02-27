@@ -1,21 +1,171 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import "../styles/Maintenance.css";
 
-/* ---------------------------------------------------------
-   1) Fetch Predictive Maintenance results from backend
---------------------------------------------------------- */
-async function fetchPredictive(ops, equipment, mud) {
-  const res = await fetch("/api/predictive-maintenance", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ operations: ops, equipment, mud }),
-  });
+/**
+ * Week 4 prototype: hard-coded data (later comes from backend).
+ * Each well returns summary + a list of equipment cards.
+ */
+const MAINT_DATA = {
+  "WELL-01": {
+    overallRisk: 22,
+    highRiskCount: 0,
+    mediumRiskCount: 1,
+    totalEquipment: 5,
+    equipment: [
+      {
+        id: "eq-mudpumps",
+        name: "Mud Pumps",
+        tag: "Surface",
+        riskLevel: "low",
+        riskScore: 28,
+        note: "Operating efficiently. Routine maintenance schedule on track.",
+        hoursUsed: 920,
+        hoursMax: 3000,
+        action: "Monitor",
+        nextMaintenanceHours: 580,
+      },
+      {
+        id: "eq-topdrive",
+        name: "Top Drive",
+        tag: "Surface",
+        riskLevel: "low",
+        riskScore: 18,
+        note: "Excellent condition. Recent inspection completed with no issues identified.",
+        hoursUsed: 400,
+        hoursMax: 2400,
+        action: "Monitor",
+        nextMaintenanceHours: 900,
+      },
+    ],
+  },
 
-  return await res.json();
-}
+  "WELL-02": {
+    overallRisk: 44,
+    highRiskCount: 1,
+    mediumRiskCount: 2,
+    totalEquipment: 6,
+    equipment: [
+      {
+        id: "eq-drillbit",
+        name: "Drill Bit",
+        tag: "Primary",
+        riskLevel: "high",
+        riskScore: 78,
+        note: "Approaching recommended replacement threshold. Reaming has accelerated wear.",
+        hoursUsed: 245,
+        hoursMax: 300,
+        action: "Inspect",
+        nextMaintenanceHours: 55,
+      },
+      {
+        id: "eq-drillstring",
+        name: "Drill String",
+        tag: "Primary",
+        riskLevel: "medium",
+        riskScore: 61,
+        note: "Operating within normal parameters. Recent stuck pipe event requires monitoring.",
+        hoursUsed: 1600,
+        hoursMax: 2500,
+        action: "Monitor",
+        nextMaintenanceHours: 420,
+      },
+      {
+        id: "eq-motor",
+        name: "Drilling Motor",
+        tag: "Downhole",
+        riskLevel: "medium",
+        riskScore: 54,
+        note: "Performance indicators within acceptable range. No immediate action required.",
+        hoursUsed: 310,
+        hoursMax: 600,
+        action: "Monitor",
+        nextMaintenanceHours: 250,
+      },
+    ],
+  },
 
-/* UI helpers */
+  "WELL-03": {
+    overallRisk: 56,
+    highRiskCount: 1,
+    mediumRiskCount: 3,
+    totalEquipment: 6,
+    equipment: [
+      {
+        id: "eq-drillstring",
+        name: "Drill String",
+        tag: "Primary",
+        riskLevel: "medium",
+        riskScore: 65,
+        note: "Operating within normal parameters. Recent stuck pipe event requires continued monitoring.",
+        hoursUsed: 1850,
+        hoursMax: 2500,
+        action: "Monitor",
+        nextMaintenanceHours: 500,
+      },
+      {
+        id: "eq-drillbit",
+        name: "Drill Bit",
+        tag: "Primary",
+        riskLevel: "high",
+        riskScore: 82,
+        note: "Approaching recommended replacement threshold. Multiple reaming operations have accelerated wear.",
+        hoursUsed: 245,
+        hoursMax: 300,
+        action: "Inspect",
+        nextMaintenanceHours: 55,
+      },
+      {
+        id: "eq-motor",
+        name: "Drilling Motor",
+        tag: "Downhole",
+        riskLevel: "medium",
+        riskScore: 58,
+        note: "Performance indicators within acceptable range. No immediate action required.",
+        hoursUsed: 380,
+        hoursMax: 600,
+        action: "Monitor",
+        nextMaintenanceHours: 220,
+      },
+      {
+        id: "eq-topdrive",
+        name: "Top Drive",
+        tag: "Surface",
+        riskLevel: "low",
+        riskScore: 28,
+        note: "Excellent condition. Recent inspection completed with no issues identified.",
+        hoursUsed: 620,
+        hoursMax: 2800,
+        action: "Monitor",
+        nextMaintenanceHours: 950,
+      },
+      {
+        id: "eq-mudpumps",
+        name: "Mud Pumps",
+        tag: "Surface",
+        riskLevel: "low",
+        riskScore: 35,
+        note: "Operating efficiently. Routine maintenance schedule on track.",
+        hoursUsed: 920,
+        hoursMax: 3000,
+        action: "Monitor",
+        nextMaintenanceHours: 580,
+      },
+      {
+        id: "eq-bha",
+        name: "Bottom Hole Assembly",
+        tag: "Downhole",
+        riskLevel: "medium",
+        riskScore: 70,
+        note: "Exposure to high-stress events. Recommend inspection at next trip.",
+        hoursUsed: 280,
+        hoursMax: 400,
+        action: "Inspect",
+        nextMaintenanceHours: 120,
+      },
+    ],
+  },
+};
+
 function clampPercent(p) {
   if (Number.isNaN(p)) return 0;
   if (p < 0) return 0;
@@ -25,9 +175,7 @@ function clampPercent(p) {
 
 function RiskPill({ level }) {
   const text =
-    level === "high" ? "HIGH RISK" :
-    level === "medium" ? "MEDIUM RISK" : "LOW RISK";
-
+    level === "high" ? "HIGH RISK" : level === "medium" ? "MEDIUM RISK" : "LOW RISK";
   return <span className={`pmPill ${level}`}>{text}</span>;
 }
 
@@ -41,94 +189,12 @@ function SummaryCard({ tone, label, value, note }) {
   );
 }
 
-/* ---------------------------------------------------------
-   MAIN COMPONENT
---------------------------------------------------------- */
 export default function Maintenance() {
   const { wellId } = useParams();
   const navigate = useNavigate();
 
-  const [data, setData] = useState(null);
+  const data = MAINT_DATA[wellId] ?? MAINT_DATA["WELL-03"];
 
-  /* ---------------------------------------------------------
-     2) Load parsed PDF data + call backend predictive engine
-  --------------------------------------------------------- */
-  useEffect(() => {
-    async function loadPredictive() {
-      try {
-        const stored = localStorage.getItem("parsedReport");
-
-        if (!stored) {
-          console.warn("No parsed report found. Predictive cannot run.");
-          return;
-        }
-
-        const parsed = JSON.parse(stored);
-
-        const result = await fetchPredictive(
-          parsed.operations ?? [],
-          parsed.equipment ?? [],
-          parsed.mud ?? {}
-        );
-
-        console.log("Predictive response:", result);
-
-        /* Build UI-friendly structure */
-        setData({
-          overallRisk: result.summary.overall_risk,
-          highRiskCount: result.summary.high_risk,
-          mediumRiskCount: result.summary.medium_risk,
-          totalEquipment: result.equipment.length,
-
-          equipment: result.equipment.map((eq, i) => {
-            const [used, max] = eq.operatingHours.split("/").map(Number);
-
-            return {
-              id: `eq-${i}`,
-              name: eq.name,
-              tag:
-                eq.name.toLowerCase().includes("surface") ? "Surface" :
-                eq.name.toLowerCase().includes("motor") ? "Downhole" :
-                eq.name.toLowerCase().includes("bha") ? "Downhole" :
-                "Primary",
-
-              riskLevel: eq.riskLevel.toLowerCase(),
-              riskScore: eq.riskScore,
-              note:
-                eq.action === "Inspect"
-                  ? "Inspection recommended based on recent stress and usage."
-                  : "Operating within normal parameters.",
-
-              hoursUsed: used,
-              hoursMax: max,
-              action: eq.action,
-              nextMaintenanceHours: eq.nextMaintenanceHours,
-            };
-          }),
-        });
-
-      } catch (err) {
-        console.error("Predictive Error:", err);
-      }
-    }
-
-    loadPredictive();
-  }, [wellId]);
-
-  /* ---------------------------------------------------------
-     3) Loading state
-  --------------------------------------------------------- */
-  if (!data) {
-    return (
-      <div className="pmPage">
-        <div className="pmLoading">Loading predictive maintenance...</div>
-      </div>
-    );
-  }
-
-  /* ---------------------------------------------------------
-     4) UI Rendering
-  --------------------------------------------------------- */
   return (
     <div className="pmPage">
       <button className="pmBack" onClick={() => navigate(`/wells/${wellId}`)}>
@@ -143,35 +209,26 @@ export default function Maintenance() {
         </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary KPI cards */}
       <div className="pmSummaryGrid">
         <SummaryCard
           tone="purple"
           label="Overall Risk"
           value={`${data.overallRisk}%`}
-          note={
-            data.overallRisk >= 70
-              ? "High level"
-              : data.overallRisk >= 40
-              ? "Medium level"
-              : "Low level"
-          }
+          note={data.overallRisk >= 70 ? "High level" : data.overallRisk >= 40 ? "Medium level" : "Low level"}
         />
-
         <SummaryCard
           tone="red"
           label="High Risk"
           value={`${data.highRiskCount}`}
           note="Requires attention"
         />
-
         <SummaryCard
           tone="yellow"
           label="Medium Risk"
           value={`${data.mediumRiskCount}`}
           note="Under monitoring"
         />
-
         <SummaryCard
           tone="blue"
           label="Total Equipment"
@@ -180,7 +237,6 @@ export default function Maintenance() {
         />
       </div>
 
-      {/* Section Header */}
       <div className="pmSectionTop">
         <h2 className="pmSectionTitle">Equipment Status</h2>
 
@@ -191,7 +247,7 @@ export default function Maintenance() {
         </div>
       </div>
 
-      {/* Equipment Cards */}
+      {/* Equipment cards */}
       <div className="pmEquipList">
         {data.equipment.map((eq) => {
           const pct = clampPercent((eq.hoursUsed / eq.hoursMax) * 100);
@@ -203,7 +259,6 @@ export default function Maintenance() {
                   <div className="pmEquipName">
                     {eq.name} <span className="pmTag">{eq.tag}</span>
                   </div>
-
                   <div className="pmEquipNote">{eq.note}</div>
                 </div>
 
@@ -248,9 +303,9 @@ export default function Maintenance() {
       <div className="pmMethod">
         <div className="pmMethodTitle">Predictive Maintenance Methodology</div>
         <div className="pmMethodText">
-          Risk scores are computed from operating hours and exposure to high-stress
-          drilling events. This panel loads analytics from the backend based on
-          the uploaded reports and parsed operation data.
+          Risk scores are computed from operating hours and exposure to high-stress drilling events
+          (Week 4 prototype). In later weeks, this page will load analytics automatically from the
+          backend based on the uploaded dataset.
         </div>
       </div>
     </div>
