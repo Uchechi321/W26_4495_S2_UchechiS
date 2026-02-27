@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models.daily_report import DailyReport
 from ..models.operation import Operation
+from ..models.mud import MudProperties
+from ..models.equipment import Equipment
+
 
 router = APIRouter(prefix="/reports", tags=["Reports"])
 
@@ -42,6 +45,9 @@ def list_reports(db: Session = Depends(get_db)):
 @router.get("/{report_id}")
 def get_report_details(report_id: int, db: Session = Depends(get_db)):
     report = db.query(DailyReport).filter(DailyReport.report_id == report_id).first()
+    mud = db.query(MudProperties).filter_by(report_id=report_id).first()
+    equipment = db.query(Equipment).filter_by(report_id=report_id).all()
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
@@ -53,29 +59,32 @@ def get_report_details(report_id: int, db: Session = Depends(get_db)):
     )
 
     return {
-        "report": {
-            "report_id": report.report_id,
-            "well_id": report.well_id,
-            "report_date": report.report_date,
-            "report_no": report.report_no,
-            "filename": report.source_filename,
-            "parser_type": report.parser_type,
-            "uploaded_at": report.uploaded_at,
-            "notes": report.notes,
-        },
-        "operations": [
-            {
-                "operation_id": o.operation_id,
-                "depth_from": o.depth_from,
-                "depth_to": o.depth_to,
-                "operation_type": o.operation_type,
-                "description": o.description,
-                "duration_hours": o.duration_hours,
-                "npt_hours": o.npt_hours,
-            }
-            for o in ops
-        ],
-    }
+    "report": {
+        "report_id": report.report_id,
+        "well_id": report.well_id,
+        "report_date": report.report_date,
+        "report_no": report.report_no,
+        "filename": report.source_filename,
+        "parser_type": report.parser_type,
+        "uploaded_at": report.uploaded_at,
+        "notes": report.notes,
+    },
+    "operations": [
+        {
+            "operation_id": o.operation_id,
+            "depth_from": o.depth_from,
+            "depth_to": o.depth_to,
+            "operation_type": o.operation_type,
+            "description": o.description,
+            "duration_hours": o.duration_hours,
+            "npt_hours": o.npt_hours,
+        }
+        for o in ops
+    ],
+    "mud": mud,
+    "equipment": equipment
+}
+
 
 
 # ------------------------------------------

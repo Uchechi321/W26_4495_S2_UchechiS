@@ -40,6 +40,7 @@ export default function Dashboard() {
   if (!dash) return <div style={{ padding: 16 }}>No data.</div>;
 
   const k = dash.kpis; // ✅ kpis object from backend
+  console.log(k);
 
   return (
     <div className="dash">
