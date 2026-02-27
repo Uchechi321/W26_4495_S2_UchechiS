@@ -103,9 +103,16 @@
   cursor: pointer;
 }
 
-.segment.normal { background: #cfd8dc; }
+.segment.normal { background: #3feb7b; }
 .segment.warning { background: #f2b705; }
 .segment.critical { background: #ff2b2b; }
+
+.segment {
+  width: 100%;
+  min-height: 12px;
+  display: block;
+  background-clip: padding-box; /* prevents pipe background showing through */
+}
 
 .segment:hover {
   opacity: 0.85;
@@ -116,4 +123,14 @@
   margin-top: 12px;
   font-size: 12px;
   color: #666;
+}
+
+/* Make pipe height reasonable */
+.pipe {
+  height: 1800px;
+}
+
+/* Ensure every segment is tall enough to show color */
+.segment {
+  min-height: 20px;
 }

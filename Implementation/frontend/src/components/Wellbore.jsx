@@ -1,12 +1,13 @@
 import "../styles/Wellbore.css";
 
-export default function Wellbore({ depthMax, segments, onSelectSegment }) {
+export default function Wellbore({ depthMax = 0, segments = [], onSelectSegment }) {
 
   // 1️⃣ Auto-classify operation severity using keywords
   function classifyLevel(description = "") {
     const text = description.toLowerCase();
 
     // ---- CRITICAL EVENTS ----
+
     if (
       text.includes("stuck") ||
       text.includes("stuck pipe") ||
@@ -17,9 +18,8 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
       text.includes("kick") ||
       text.includes("well control") ||
       text.includes("blowout") ||
-      text.includes("pack-off") ||       // FIXED
+      text.includes("pack-off") ||
       text.includes("pack off")
-                // alternate phrasing
     ) {
       return "critical";
     }
@@ -42,6 +42,9 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
     return "normal";
   }
 
+  // 🛡️ Prevent crashes if segments is undefined/null
+  const safeSegments = Array.isArray(segments) ? segments.filter(Boolean) : [];
+
   return (
     <div className="wellboreWrap">
       <div className="depthAxis">
@@ -49,7 +52,6 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
           <div key={i}>{Math.round(d)} m</div>
         ))}
       </div>
-
 
       <div className="wellPanel">
         <div className="wellHeader">
@@ -69,15 +71,10 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
 
         <div className="pipeArea">
           <div className="pipe">
-            {segments.map((seg, idx) => {
-
-              // 2️⃣ Auto-classify if backend didn’t provide level
-              const autoLevel = classifyLevel(seg.description || "");
-
-              // 3️⃣ Ensure final level ALWAYS lowercase (IMPORTANT)
+            {safeSegments.map((seg, idx) => {
+              const autoLevel = classifyLevel(seg.whyItMatters || "");
               const finalLevel = (seg.level || autoLevel).toLowerCase();
 
-              // 4️⃣ Height based on interval
               const heightPercent =
                 depthMax > 0 ? ((seg.to - seg.from) / depthMax) * 100 : 0;
 
@@ -85,9 +82,9 @@ export default function Wellbore({ depthMax, segments, onSelectSegment }) {
                 <button
                   key={idx}
                   type="button"
-                  className={`segment ${finalLevel}`}
-                  title={`${finalLevel.toUpperCase()} (${seg.from}m–${seg.to}m)`}
-                  style={{ height: `${heightPercent}%` }}
+                  className={`segment ${autoLevel}`}
+                  title={`${autoLevel.toUpperCase()} (${seg.from}m–${seg.to}m)`}
+                  style={{ height: `${Math.max(heightPercent, 1)}%` }} // ensure visible
                   onClick={() => onSelectSegment?.(seg)}
                 />
               );
