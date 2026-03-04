@@ -56,8 +56,10 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
     if not well:
         raise HTTPException(status_code=404, detail=f"Well '{well_id}' not found")
 
-    ops = (
-        db.query(Operation)
+    # Join with DailyReport to get report_date per operation (for NPT-by-report chart)
+    ops_with_dates = (
+        db.query(Operation, DailyReport.report_date)
+        .join(DailyReport, DailyReport.report_id == Operation.report_id)
         .filter(Operation.well_id == well_id)
         .order_by(Operation.depth_from.asc())
         .all()
@@ -65,7 +67,9 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
 
     # Build "segments" from operations (simple MVP)
     segments = []
-    for o in ops:
+    ops = []
+    for o, report_date in ops_with_dates:
+        ops.append(o)
         level = "normal"
         if o.npt_hours and o.npt_hours >= 2:
             level = "critical"
@@ -81,7 +85,7 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
                 "operationType": o.operation_type,
                 "whyItMatters": o.description,
                 "nptHours": o.npt_hours,
-                "recordedAt": None,
+                "recordedAt": report_date.isoformat() if report_date else None,
             }
         )
 

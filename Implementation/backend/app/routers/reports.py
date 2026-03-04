@@ -59,32 +59,66 @@ def get_report_details(report_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-    return {
-    "report": {
-        "report_id": report.report_id,
-        "well_id": report.well_id,
-        "report_date": report.report_date,
-        "report_no": report.report_no,
-        "filename": report.source_filename,
-        "parser_type": report.parser_type,
-        "uploaded_at": report.uploaded_at,
-        "notes": report.notes,
-    },
-    "operations": [
-        {
-            "operation_id": o.operation_id,
-            "depth_from": o.depth_from,
-            "depth_to": o.depth_to,
-            "operation_type": o.operation_type,
-            "description": o.description,
-            "duration_hours": o.duration_hours,
-            "npt_hours": o.npt_hours,
+    def mud_to_dict(m):
+        if m is None:
+            return None
+        return {
+            "mud_desc": m.mud_desc,
+            "density_ppg": m.density_ppg,
+            "viscosity_sqt": m.viscosity_sqt,
+            "pv_cp": m.pv_cp,
+            "yp_lbf100ft2": m.yp_lbf100ft2,
+            "cl_ppm": m.cl_ppm,
+            "ca_ppm": m.ca_ppm,
+            "pH": m.pH,
+            "pm_cc": m.pm_cc,
+            "pf_cc": m.pf_cc,
+            "mf_cc": m.mf_cc,
         }
-        for o in ops
-    ],
-    "mud": mud,
-    "equipment": equipment
-}
+
+    def equipment_to_dict(e):
+        return {
+            "component_type": e.component_type,
+            "joints": e.joints,
+            "length_ft": e.length_ft,
+            "od_in": e.od_in,
+            "id_in": e.id_in,
+            "connection": e.connection,
+            "weight_ppf": e.weight_ppf,
+            "grade": e.grade,
+            "pin_box": e.pin_box,
+            "serial_no": e.serial_no,
+            "spiral": e.spiral,
+            "fish_neck_length_ft": e.fish_neck_length_ft,
+            "fish_neck_od": e.fish_neck_od,
+        }
+
+    return {
+        "report": {
+            "report_id": report.report_id,
+            "well_id": report.well_id,
+            "report_date": report.report_date,
+            "report_no": report.report_no,
+            "filename": report.source_filename,
+            "parser_type": report.parser_type,
+            "uploaded_at": report.uploaded_at,
+            "notes": report.notes,
+        },
+        "operations": [
+            {
+                "operation_id": o.operation_id,
+                "depth_from": o.depth_from,
+                "depth_to": o.depth_to,
+                "operation_type": o.operation_type,
+                "description": o.description,
+                "duration_hours": o.duration_hours,
+                "npt_hours": o.npt_hours,
+            }
+            for o in ops
+        ],
+        "mud": mud_to_dict(mud),
+        "equipment": [equipment_to_dict(e) for e in equipment],
+    }
 
 
 

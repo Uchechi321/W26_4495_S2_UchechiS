@@ -188,13 +188,24 @@ def get_segments_for_well(
 
 @router.get("/{well_id}/dashboard")
 def get_dashboard(well_id: str, db: Session = Depends(get_db)):
-    # Load all operations for this well
-    ops = (
-        db.query(Operation)
-        .filter(Operation.well_id == well_id)
-        .order_by(Operation.operation_id.asc())
-        .all()
-    )
+    # Load all operations for this well (join DailyReport to include report_date for recordedAt)
+    if DailyReport is not None:
+        rows = (
+            db.query(Operation, DailyReport.report_date)
+            .join(DailyReport, DailyReport.report_id == Operation.report_id)
+            .filter(Operation.well_id == well_id)
+            .order_by(Operation.operation_id.asc())
+            .all()
+        )
+        ops = [op for (op, _report_date) in rows]
+    else:
+        rows = None
+        ops = (
+            db.query(Operation)
+            .filter(Operation.well_id == well_id)
+            .order_by(Operation.operation_id.asc())
+            .all()
+        )
 
     if not ops:
         return {
@@ -225,21 +236,38 @@ def get_dashboard(well_id: str, db: Session = Depends(get_db)):
 
     # Build segments (reuse your existing logic)
     segments = []
-    for op in ops:
-        if op.depth_from is None or op.depth_to is None:
-            continue
+    if rows is not None:
+        for op, report_date in rows:
+            if op.depth_from is None or op.depth_to is None:
+                continue
 
-        segments.append({
-            "from": float(op.depth_from),
-            "to": float(op.depth_to),
-            "level": _level_from_op(op),
-            "description": op.description,
-            "eventType": op.operation_type,
-            "operationType": op.operation_type,
-            "whyItMatters": op.description,
-            "nptHours": op.npt_hours,
-            "recordedAt": None,
-        })
+            segments.append({
+                "from": float(op.depth_from),
+                "to": float(op.depth_to),
+                "level": _level_from_op(op),
+                "description": op.description,
+                "eventType": op.operation_type,
+                "operationType": op.operation_type,
+                "whyItMatters": op.description,
+                "nptHours": op.npt_hours,
+                "recordedAt": report_date.isoformat() if report_date else None,
+            })
+    else:
+        for op in ops:
+            if op.depth_from is None or op.depth_to is None:
+                continue
+
+            segments.append({
+                "from": float(op.depth_from),
+                "to": float(op.depth_to),
+                "level": _level_from_op(op),
+                "description": op.description,
+                "eventType": op.operation_type,
+                "operationType": op.operation_type,
+                "whyItMatters": op.description,
+                "nptHours": op.npt_hours,
+                "recordedAt": None,
+            })
 
     return {
         "kpis": {

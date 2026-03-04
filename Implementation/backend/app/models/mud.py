@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Float, ForeignKey
+from sqlalchemy import Column, Integer, Float, ForeignKey, String
 from sqlalchemy.orm import relationship
 from ..database import Base
 
@@ -8,6 +8,7 @@ class MudProperties(Base):
     id = Column(Integer, primary_key=True, index=True)
     report_id = Column(Integer, ForeignKey("daily_reports.report_id"))
 
+    mud_desc = Column(String)
     density_ppg = Column(Float)
     viscosity_sqt = Column(Float)
     pv_cp = Column(Float)
