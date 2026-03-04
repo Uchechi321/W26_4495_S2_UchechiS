@@ -19,7 +19,7 @@ export default function UploadBox({ wellId }) {
     form.append("report_date", reportDate);
     form.append("parser_type", parserType);
 
-    const res = await fetch("http://127.0.0.1:8000/upload/daily-report", {
+    const res = await fetch("/api/upload/daily-report", {
       method: "POST",
       body: form
     });

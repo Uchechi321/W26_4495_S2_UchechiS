@@ -9,7 +9,7 @@ export default function EditReport() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/reports/${reportId}`)
+    fetch(`/api/reports/${reportId}`)
       .then((res) => res.json())
       .then((data) => {
         setReport(data.report);
@@ -18,7 +18,7 @@ export default function EditReport() {
   }, [reportId]);
 
   async function handleSave() {
-    const res = await fetch(`http://127.0.0.1:8000/reports/${reportId}`, {
+    const res = await fetch(`/api/reports/${reportId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -30,7 +30,7 @@ export default function UploadReport() {
     formData.append("parser_type", parser);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload/daily-report", {
+      const res = await fetch("/api/upload/daily-report", {
         method: "POST",
         body: formData,
       });

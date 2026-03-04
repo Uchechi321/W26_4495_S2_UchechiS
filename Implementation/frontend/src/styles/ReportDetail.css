@@ -78,8 +78,16 @@
 }
 
 /* TABLE WRAPPER */
-.rdOps {
+.rdOps,
+.rdSection {
   overflow-x: auto;
+  margin-bottom: 8px;
+}
+
+.rdEmpty {
+  color: #666;
+  font-style: italic;
+  padding: 12px 0;
 }
 
 /* TABLE */

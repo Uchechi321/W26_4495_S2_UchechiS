@@ -14,7 +14,7 @@ export default function Reports() {
   async function handleDelete(reportId) {
       if (!window.confirm("Are you sure you want to delete this report?")) return;
 
-      const res = await fetch(`http://127.0.0.1:8000/reports/${reportId}`, {
+      const res = await fetch(`/api/reports/${reportId}`, {
         method: "DELETE"
       });
 
@@ -31,7 +31,7 @@ export default function Reports() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/wells/${wellId}/reports`);
+        const res = await fetch(`/api/wells/${wellId}/reports`);
         if (!res.ok) throw new Error("Failed to load reports");
         const data = await res.json();
         setReports(data);
