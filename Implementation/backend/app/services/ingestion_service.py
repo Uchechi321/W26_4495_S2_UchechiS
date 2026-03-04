@@ -8,6 +8,8 @@ from ..models.well import Well
 from ..models.daily_report import DailyReport
 from ..models.operation import Operation
 from ..models.event import Event
+from ..models.mud import MudProperties
+from ..models.equipment import Equipment
 
 # ✅ NEW: import parser(s)
 from ..parsers.nnpc_format_a import parse_nnpc_format_a
@@ -125,6 +127,59 @@ def insert_operations_events(
     return ops_inserted, evs_inserted
 
 
+def insert_mud(db: Session, report_id: int, mud_dict: Dict[str, Any]) -> bool:
+    """Insert one MudProperties row from parsed mud dict. Returns True if inserted."""
+    if not mud_dict or not any(
+        mud_dict.get(k) is not None
+        for k in ("mud_desc", "density_ppg", "viscosity_sqt", "pv_cp", "yp_lbf100ft2", "cl_ppm", "ca_ppm", "pH", "pm_cc", "pf_cc", "mf_cc")
+    ):
+        return False
+    db.add(MudProperties(
+        report_id=report_id,
+        mud_desc=mud_dict.get("mud_desc"),
+        density_ppg=mud_dict.get("density_ppg"),
+        viscosity_sqt=mud_dict.get("viscosity_sqt"),
+        pv_cp=mud_dict.get("pv_cp"),
+        yp_lbf100ft2=mud_dict.get("yp_lbf100ft2"),
+        cl_ppm=mud_dict.get("cl_ppm"),
+        ca_ppm=mud_dict.get("ca_ppm"),
+        pH=mud_dict.get("pH"),
+        pm_cc=mud_dict.get("pm_cc"),
+        pf_cc=mud_dict.get("pf_cc"),
+        mf_cc=mud_dict.get("mf_cc"),
+    ))
+    db.commit()
+    return True
+
+
+def insert_equipment(db: Session, report_id: int, equipment_list: list) -> int:
+    """Insert Equipment rows from parsed equipment list. Returns count inserted."""
+    count = 0
+    for eq in equipment_list or []:
+        if not eq or not eq.get("component_type"):
+            continue
+        db.add(Equipment(
+            report_id=report_id,
+            component_type=eq.get("component_type"),
+            joints=eq.get("joints"),
+            length_ft=eq.get("length_ft"),
+            od_in=eq.get("od_in"),
+            id_in=eq.get("id_in"),
+            connection=eq.get("connection"),
+            weight_ppf=eq.get("weight_ppf"),
+            grade=eq.get("grade"),
+            pin_box=eq.get("pin_box"),
+            serial_no=eq.get("serial_no"),
+            spiral=eq.get("spiral"),
+            fish_neck_length_ft=eq.get("fish_neck_length_ft"),
+            fish_neck_od=eq.get("fish_neck_od"),
+        ))
+        count += 1
+    if count:
+        db.commit()
+    return count
+
+
 def ingest_daily_report_pdf(
     db: Session,
     well_id: str,
@@ -167,6 +222,9 @@ def ingest_daily_report_pdf(
         parsed=parsed,
     )
 
+    mud_inserted = insert_mud(db, report.report_id, parsed.get("mud") or {})
+    equipment_inserted = insert_equipment(db, report.report_id, parsed.get("equipment") or [])
+
     return {
         "report_id": report.report_id,
         "well_id": well_id,
@@ -175,7 +233,8 @@ def ingest_daily_report_pdf(
         "parser_type": parser_type,
         "operations_inserted": ops_inserted,
         "events_inserted": evs_inserted,
-        # helpful for debugging early
+        "mud_inserted": mud_inserted,
+        "equipment_inserted": equipment_inserted,
         "notes": parsed.get("notes"),
         "debug_preview": parsed.get("raw_text_preview"),
     }
