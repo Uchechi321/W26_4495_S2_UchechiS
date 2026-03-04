@@ -45,6 +45,13 @@ export default function Wellbore({ depthMax = 0, segments = [], onSelectSegment 
   // 🛡️ Prevent crashes if segments is undefined/null
   const safeSegments = Array.isArray(segments) ? segments.filter(Boolean) : [];
 
+  // Pipe height scales with depth so the last segment is reachable by scrolling.
+  // Also ensure enough height for min-height per segment so nothing is clipped.
+  const minPipeHeight = 1500;
+  const depthScaledHeight = depthMax > 0 ? Math.min(depthMax * 0.8, 20000) : minPipeHeight;
+  const segmentMinTotal = safeSegments.length * 24; // ~24px min per segment
+  const pipeHeight = Math.max(minPipeHeight, depthScaledHeight, segmentMinTotal);
+
   return (
     <div className="wellboreWrap">
       <div className="depthAxis">
@@ -70,7 +77,7 @@ export default function Wellbore({ depthMax = 0, segments = [], onSelectSegment 
         </div>
 
         <div className="pipeArea">
-          <div className="pipe">
+          <div className="pipe" style={{ height: `${pipeHeight}px` }}>
             {safeSegments.map((seg, idx) => {
               const autoLevel = classifyLevel(seg.whyItMatters || "");
               const finalLevel = (seg.level || autoLevel).toLowerCase();

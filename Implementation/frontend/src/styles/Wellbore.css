@@ -80,19 +80,17 @@
   justify-content: center;
 }
 
-/* --- Pipe (very tall so segments are visible) --- */
+/* --- Pipe (height set in JS to scale with depth so scroll reaches last segment) --- */
 .pipe {
   width: 160px;
   border: 4px solid #9aa8bd;
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible; /* avoid clipping when segment min-heights add up */
   background: #dbe3ef;
-
-  /* 🔥 Make pipe tall enough for deep wells */
-  height: 5000px; /* You can increase to 8000px if needed */
 
   display: flex;
   flex-direction: column;
+  /* height set inline from Wellbore.jsx */
 }
 
 /* --- Segments --- */
@@ -125,9 +123,9 @@
   color: #666;
 }
 
-/* Make pipe height reasonable */
+/* Pipe min-height fallback only; Wellbore.jsx sets height from depthMax/segments */
 .pipe {
-  height: 1800px;
+  min-height: 1200px;
 }
 
 /* Ensure every segment is tall enough to show color */
