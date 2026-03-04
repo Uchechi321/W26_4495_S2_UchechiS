@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
+from ..services.ai_engine import analyze_segment
 from ..models.well import Well
 from ..models.operation import Operation
 from ..models.daily_report import DailyReport
@@ -136,6 +138,19 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
         "segments": segments,
         "equipmentByReport": equipment_by_report,
     }
+
+
+class SegmentAnalysisRequest(BaseModel):
+    segment: dict
+    equipment: list = []
+
+
+@router.post("/{well_id}/segment-analysis")
+def get_segment_analysis(well_id: str, body: SegmentAnalysisRequest):
+    """Return AI-generated explanation for why a segment was flagged (e.g. red critical)."""
+    context = {"well_id": well_id, "equipment": body.equipment or []}
+    return analyze_segment(body.segment, context)
+
 
 @router.get("/{well_id}/reports")
 def list_reports_for_well(well_id: str, db: Session = Depends(get_db)):

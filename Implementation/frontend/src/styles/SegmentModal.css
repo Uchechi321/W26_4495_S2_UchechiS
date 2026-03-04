@@ -274,4 +274,129 @@
   background: #f7f9fb;
 }
 
+/* ---------- Explanation view (AI analysis / detailed explanation) ---------- */
+.explanationViewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  margin: -18px -18px 0 -18px;
+  border-radius: 18px 18px 0 0;
+  background: linear-gradient(135deg, #2563eb 0%, #4f46e5 50%, #6366f1 100%);
+  color: white;
+}
+
+.explanationViewHeaderInner {
+  flex: 1;
+}
+
+.explanationViewTitle {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+}
+
+.explanationViewDepth {
+  margin-top: 4px;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+.explanationViewClose {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.explanationViewClose:hover {
+  opacity: 0.9;
+}
+
+.explanationViewBody {
+  margin-top: 16px;
+}
+
+.explanationError {
+  margin-top: 10px;
+  padding: 10px;
+  background: #fff0f0;
+  border: 1px solid #ffd1d1;
+  border-radius: 10px;
+  color: #c00;
+  font-size: 13px;
+}
+
+.sectionTitleWithIcon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 900;
+  margin-bottom: 10px;
+}
+
+.sectionIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sectionIconInfo {
+  background: #2563eb;
+  color: white;
+}
+
+.sectionIconHistory {
+  background: #eab308;
+  color: #333;
+  font-size: 12px;
+}
+
+.sectionCardHistory {
+  background: #fefce8;
+  border-color: #fef08a;
+}
+
+.sectionCardMethodology {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.sectionIconMethodology {
+  background: #ea580c;
+  color: white;
+  font-style: italic;
+  font-family: serif;
+}
+
+.factorIcon {
+  margin-right: 8px;
+}
+
+.factorIconDanger {
+  color: #dc2626;
+}
+
+.factorIconWarning {
+  color: #ea580c;
+}
+
+.listWithCheckmarks .checkmark {
+  color: #16a34a;
+  font-weight: 800;
+  margin-right: 8px;
+}
+
     

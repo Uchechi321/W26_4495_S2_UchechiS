@@ -1,14 +1,41 @@
 import { useState, useEffect } from "react";
 import "../styles/SegmentModal.css";
 
-export default function SegmentModal({ open, segment, equipment = [], onClose }) {
-  // ✅ Hooks MUST be before any return
+export default function SegmentModal({ open, segment, wellId, equipment = [], onClose }) {
   const [showExplanation, setShowExplanation] = useState(false);
+  const [explanationData, setExplanationData] = useState(null);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+  const [explanationError, setExplanationError] = useState("");
 
-  // reset to Details whenever a new segment opens
+  // reset when modal or segment changes
   useEffect(() => {
     if (open) setShowExplanation(false);
+    if (!open || !segment) {
+      setExplanationData(null);
+      setExplanationError("");
+    }
   }, [open, segment]);
+
+  async function handleViewDetailedExplanation() {
+    if (!segment || !wellId) return;
+    setLoadingExplanation(true);
+    setExplanationError("");
+    try {
+      const res = await fetch(`/api/wells/${wellId}/segment-analysis`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ segment, equipment }),
+      });
+      if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
+      const data = await res.json();
+      setExplanationData(data);
+      setShowExplanation(true);
+    } catch (e) {
+      setExplanationError(e.message || "Failed to load explanation");
+    } finally {
+      setLoadingExplanation(false);
+    }
+  }
 
   // If modal is not open or no segment selected, show nothing
   if (!open || !segment) return null;
@@ -20,33 +47,32 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
       ? "Warning"
       : "Normal";
 
-  const exp = segment.explanation; // shortcut for explanation data
+  const exp = explanationData || segment.explanation;
 
   return (
     <div className="modalOverlay" onClick={onClose}>
-      {/* stopPropagation prevents closing when clicking inside the card */}
       <div className="modalCard" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="modalHeader">
-          <div className="modalTitleWrap">
-            <div className="modalIcon">⚠️</div>
-
-            <div>
-              <h2 className="modalTitle">
-                {showExplanation
-                  ? exp?.title ?? "Detailed Explanation"
-                  : "Depth Segment Details"}
-              </h2>
-              <div className="modalSub">
-                {segment.from}m – {segment.to}m
+        {/* Header: gradient for explanation view, normal for details */}
+        {showExplanation && exp ? (
+          <div className="explanationViewHeader">
+            <div className="explanationViewHeaderInner">
+              <h2 className="explanationViewTitle">{exp.title ?? "Detailed Explanation"}</h2>
+              <div className="explanationViewDepth">Depth: {exp.depthRange ?? `${segment.from}m - ${segment.to}m`}</div>
+            </div>
+            <button type="button" className="explanationViewClose" onClick={onClose} aria-label="Close">✕</button>
+          </div>
+        ) : (
+          <div className="modalHeader">
+            <div className="modalTitleWrap">
+              <div className="modalIcon">⚠️</div>
+              <div>
+                <h2 className="modalTitle">Depth Segment Details</h2>
+                <div className="modalSub">{segment.from}m – {segment.to}m</div>
               </div>
             </div>
+            <button className="modalClose" onClick={onClose}>✕</button>
           </div>
-
-          <button className="modalClose" onClick={onClose}>
-            ✕
-          </button>
-        </div>
+        )}
 
         {/* ✅ Switch screen based on showExplanation */}
         {!showExplanation ? (
@@ -153,11 +179,10 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                 <button
                   className="primaryBtn"
                   type="button"
-                  onClick={() => setShowExplanation(true)}
-                  disabled={!exp}
-                  title={!exp ? "No explanation data yet" : ""}
+                  onClick={handleViewDetailedExplanation}
+                  disabled={loadingExplanation}
                 >
-                  View Detailed Explanation
+                  {loadingExplanation ? "Loading…" : "View Detailed Explanation"}
                 </button>
 
                 <button className="secondaryBtn" type="button" onClick={onClose}>
@@ -169,46 +194,69 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
         ) : (
           <>
             {/* EXPLANATION VIEW (your “3 pictures” screen) */}
-            <div className="sectionCard blue">
-              <div className="sectionTitle">Why Was This Flagged?</div>
-              <div className="sectionText">
-                {exp?.flaggedReason ??
-                  "No explanation text added yet. Add segment.explanation to your data."}
+            <div className="explanationViewBody">
+              <div className="sectionCard blue explanationWhyCard">
+                <div className="sectionTitleWithIcon">
+                  <span className="sectionIcon sectionIconInfo">!</span>
+                  Why Was This Flagged?
+                </div>
+                <div className="sectionText">
+                  {exp?.flaggedReason ?? "No explanation available."}
+                </div>
               </div>
-            </div>
 
-            <h3 className="modalH3">Contributing Factors</h3>
+              <h3 className="modalH3">Contributing Factors</h3>
 
             {(exp?.contributingFactors ?? []).map((f, i) => (
               <div
                 key={i}
                 className={`factorCard ${f.type === "danger" ? "danger" : "warning"}`}
               >
-                <div className="factorHeading">{f.heading}</div>
+                <div className="factorHeading">
+                  {f.type === "danger" ? (
+                    <span className="factorIcon factorIconDanger">📈</span>
+                  ) : (
+                    <span className="factorIcon factorIconWarning">📍</span>
+                  )}
+                  {f.heading}
+                </div>
                 <div className="factorText">{f.text}</div>
               </div>
             ))}
 
+            <div className="sectionCard sectionCardHistory">
+              <div className="sectionTitleWithIcon">
+                <span className="sectionIcon sectionIconHistory">🕐</span>
+                Similar Events in Well History
+              </div>
+              <div className="sectionText">
+                {exp?.similarEventsInHistory ?? "No historical comparison available."}
+              </div>
+            </div>
+
             <div className="sectionCard">
               <div className="sectionTitle">Technical Factors Identified</div>
               <ul className="list">
-                {(exp?.technicalFactors ?? []).map((t) => (
-                  <li key={t}>{t}</li>
+                {(exp?.technicalFactors ?? []).map((t, i) => (
+                  <li key={i}>{t}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="sectionCard green">
+            <div className="sectionCard green sectionCardPrevention">
               <div className="sectionTitle">Recommended Prevention Measures</div>
-              <ul className="list">
-                {(exp?.preventionMeasures ?? []).map((p) => (
-                  <li key={p}>{p}</li>
+              <ul className="list listWithCheckmarks">
+                {(exp?.preventionMeasures ?? []).map((p, i) => (
+                  <li key={i}><span className="checkmark">✓</span> {p}</li>
                 ))}
               </ul>
             </div>
 
-            <div className="sectionCard warningBox">
-              <div className="sectionTitle">Analysis Methodology</div>
+            <div className="sectionCard sectionCardMethodology">
+              <div className="sectionTitleWithIcon">
+                <span className="sectionIcon sectionIconMethodology">i</span>
+                Analysis Methodology
+              </div>
               <div className="sectionText">{exp?.methodology ?? "N/A"}</div>
             </div>
 
@@ -226,6 +274,7 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                   Close Analysis
                 </button>
               </div>
+            </div>
             </div>
           </>
         )}

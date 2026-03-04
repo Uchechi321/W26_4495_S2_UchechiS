@@ -143,6 +143,7 @@ export default function Dashboard() {
       <SegmentModal
         open={!!selectedSegment}
         segment={selectedSegment}
+        wellId={wellId}
         equipment={selectedSegment?.report_id != null ? (dash.equipmentByReport?.[String(selectedSegment.report_id)] ?? []) : []}
         onClose={() => setSelectedSegment(null)}
       />
