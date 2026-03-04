@@ -245,4 +245,33 @@
   border-color: #ffe0b2;
 }
 
+/* Equipment table in segment modal */
+.segmentModalEquipmentWrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.segmentModalEquipmentTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.segmentModalEquipmentTable th,
+.segmentModalEquipmentTable td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.segmentModalEquipmentTable th {
+  font-weight: 700;
+  color: #555;
+  background: #f7f9fb;
+}
+
+.segmentModalEquipmentTable tbody tr:hover {
+  background: #f7f9fb;
+}
+
     

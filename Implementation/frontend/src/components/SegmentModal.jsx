@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "../styles/SegmentModal.css";
 
-export default function SegmentModal({ open, segment, onClose }) {
+export default function SegmentModal({ open, segment, equipment = [], onClose }) {
   // ✅ Hooks MUST be before any return
   const [showExplanation, setShowExplanation] = useState(false);
 
@@ -78,21 +78,48 @@ export default function SegmentModal({ open, segment, onClose }) {
               </div>
             </div>
 
-            {/* Equipment */}
+            {/* Equipment (report-level assembly components) */}
             <div className="sectionCard">
               <div className="sectionTitle">Equipment Involved</div>
 
-              <div className="chips">
-                {(segment.equipment ?? []).length === 0 ? (
-                  <span className="emptyText">No equipment recorded</span>
-                ) : (
-                  segment.equipment.map((eq) => (
-                    <span key={eq} className="chip">
-                      {eq}
-                    </span>
-                  ))
-                )}
-              </div>
+              {Array.isArray(equipment) && equipment.length > 0 ? (
+                <div className="segmentModalEquipmentWrap">
+                  <table className="segmentModalEquipmentTable">
+                    <thead>
+                      <tr>
+                        <th>Component</th>
+                        <th>Joints</th>
+                        <th>Length (ft)</th>
+                        <th>OD (in)</th>
+                        <th>Connection</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {equipment.map((eq, idx) => (
+                        <tr key={idx}>
+                          <td>{eq.component_type ?? "—"}</td>
+                          <td>{eq.joints != null ? eq.joints : "—"}</td>
+                          <td>{eq.length_ft != null ? eq.length_ft : "—"}</td>
+                          <td>{eq.od_in != null ? eq.od_in : "—"}</td>
+                          <td>{eq.connection ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="chips">
+                  {(segment.equipment ?? []).length === 0 ? (
+                    <span className="emptyText">No equipment recorded</span>
+                  ) : (
+                    (segment.equipment ?? []).map((eq) => (
+                      <span key={eq} className="chip">
+                        {typeof eq === "object" ? (eq.component_type ?? JSON.stringify(eq)) : eq}
+                      </span>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Actions */}

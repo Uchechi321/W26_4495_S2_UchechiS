@@ -5,6 +5,7 @@ from ..database import SessionLocal
 from ..models.well import Well
 from ..models.operation import Operation
 from ..models.daily_report import DailyReport
+from ..models.equipment import Equipment
 
 router = APIRouter(prefix="/wells", tags=["Wells"])
 
@@ -86,8 +87,33 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
                 "whyItMatters": o.description,
                 "nptHours": o.npt_hours,
                 "recordedAt": report_date.isoformat() if report_date else None,
+                "report_id": o.report_id,
             }
         )
+
+    # Equipment per report (for segment modal "Equipment Involved")
+    report_ids = list({o.report_id for o in ops})
+    equipment_by_report = {}
+    for rid in report_ids:
+        items = db.query(Equipment).filter_by(report_id=rid).order_by(Equipment.id).all()
+        equipment_by_report[str(rid)] = [
+            {
+                "component_type": e.component_type,
+                "joints": e.joints,
+                "length_ft": e.length_ft,
+                "od_in": e.od_in,
+                "id_in": e.id_in,
+                "connection": e.connection,
+                "weight_ppf": e.weight_ppf,
+                "grade": e.grade,
+                "pin_box": e.pin_box,
+                "serial_no": e.serial_no,
+                "spiral": e.spiral,
+                "fish_neck_length_ft": e.fish_neck_length_ft,
+                "fish_neck_od": e.fish_neck_od,
+            }
+            for e in items
+        ]
 
     # KPIs (simple MVP)
     total_npt = sum([o.npt_hours or 0 for o in ops])
@@ -108,6 +134,7 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
             "maintenanceRisk": "Low" if total_npt == 0 else "Medium" if total_npt < 5 else "High",
         },
         "segments": segments,
+        "equipmentByReport": equipment_by_report,
     }
 
 @router.get("/{well_id}/reports")
