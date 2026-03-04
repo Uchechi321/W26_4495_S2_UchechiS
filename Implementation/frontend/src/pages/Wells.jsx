@@ -36,7 +36,7 @@ export default function Wells() {
       setError("");
 
       try {
-        const res = await fetch("http://127.0.0.1:8000/wells/");
+        const res = await fetch("/api/wells/");
         if (!res.ok) throw new Error(`Backend error: ${res.status}`);
         const data = await res.json();
         setWells(data);
@@ -165,7 +165,7 @@ export default function Wells() {
                 className="modalCreateBtn"
                 onClick={async () => {
                   await fetch(
-                    `http://127.0.0.1:8000/wells?well_id=${newWellId}&well_name=${newName}&location=${newLocation}`,
+                    `/api/wells?well_id=${newWellId}&well_name=${newName}&location=${newLocation}`,
                     { method: "POST" }
                   );
                   setShowModal(false);

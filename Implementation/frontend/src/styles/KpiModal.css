@@ -1,0 +1,179 @@
+.kpiModalChartSection {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid #eee;
+  background: #fafafa;
+}
+
+.kpiModalChartTitle {
+  margin: 0 0 14px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #333;
+}
+
+.kpiModalBarChart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kpiModalBarRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(80px, 2fr) 56px;
+  align-items: center;
+  gap: 10px;
+}
+
+.kpiModalBarLabel {
+  font-size: 13px;
+  color: #444;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpiModalBarTrack {
+  height: 20px;
+  background: #e8e8e8;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.kpiModalBarFill {
+  height: 100%;
+  min-width: 4px;
+  background: linear-gradient(90deg, #c62828, #e57373);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.kpiModalBarValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  text-align: right;
+}
+
+.kpiModalChartTotal {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  font-size: 14px;
+  font-weight: 800;
+  color: #333;
+}
+
+/* Vertical bar chart (NPT by report date): x = date, y = NPT hours */
+.kpiModalAxisRow {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.kpiModalAxisTitle {
+  font-size: 12px;
+  font-weight: 800;
+  color: #444;
+}
+
+.kpiModalYAxisCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpiModalYAxisTicks {
+  height: 180px; /* match barsWrap min-height */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-right: 6px;
+  border-right: 1px solid #ddd;
+}
+
+.kpiModalYAxisTick {
+  font-size: 11px;
+  color: #555;
+}
+
+.kpiModalXAxisCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpiModalXAxisTitle {
+  text-align: center;
+}
+
+.kpiModalVerticalChart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kpiModalBarsWrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 8px;
+  min-height: 180px;
+  padding: 0 4px;
+}
+
+.kpiModalVerticalBarCell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.kpiModalVerticalBarTrack {
+  width: 100%;
+  max-width: 48px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.kpiModalVerticalBar {
+  width: 100%;
+  min-height: 6px;
+  background: linear-gradient(180deg, #c62828, #e57373);
+  border-radius: 8px 8px 0 0;
+  transition: height 0.3s ease;
+}
+
+.kpiModalVerticalBarValue {
+  font-size: 12px;
+  font-weight: 700;
+  color: #333;
+}
+
+.kpiModalXAxis {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+  padding: 4px 0 0;
+  border-top: 1px solid #ddd;
+}
+
+.kpiModalXAxisLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: #555;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
