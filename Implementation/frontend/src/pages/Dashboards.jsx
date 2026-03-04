@@ -23,7 +23,7 @@ export default function Dashboard() {
       setError("");
 
       try {
-        const res = await fetch(`http://127.0.0.1:8000/wells/${wellId}/dashboard`);
+        const res = await fetch(`/api/wells/${wellId}/dashboard`);
         if (!res.ok) throw new Error(`Backend error: ${res.status}`);
         const data = await res.json();
         setDash(data);
@@ -43,6 +43,21 @@ export default function Dashboard() {
 
   const k = dash.kpis; // ✅ kpis object from backend
   console.log(k);
+
+  // Build NPT by report date from segments (for NPT modal bar chart: x = date, y = NPT hrs)
+  const nptByReportDate = (() => {
+    const segments = dash.segments || [];
+    const byDate = {};
+    for (const s of segments) {
+      const hours = Number(s.nptHours) || 0;
+      if (hours <= 0) continue;
+      const dateKey = s.recordedAt || "Unknown date";
+      byDate[dateKey] = (byDate[dateKey] || 0) + hours;
+    }
+    return Object.entries(byDate)
+      .map(([date, hours]) => ({ date, hours }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  })();
 
   return (
     <div className="dash">
@@ -85,7 +100,12 @@ export default function Dashboard() {
             subtitle="Total across all events"
             badge="NPT"
             tone="danger"
-            onClick={() => setKpiModal({ title: "Non-Productive Time", text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed. This includes equipment failures, weather, and other unplanned events." })}
+            onClick={() => setKpiModal({
+              title: "Non-Productive Time",
+              text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed. The chart below shows total NPT hours per report date.",
+              chartData: nptByReportDate,
+              chartType: "nptByDate",
+            })}
           />
 
           <KpiCard
@@ -131,6 +151,8 @@ export default function Dashboard() {
         title={kpiModal?.title ?? ""}
         text={kpiModal?.text ?? ""}
         onClose={() => setKpiModal(null)}
+        chartData={kpiModal?.chartData}
+        chartType={kpiModal?.chartType}
       />
     </div>
   );
