@@ -195,6 +195,17 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
           <>
             {/* EXPLANATION VIEW (your “3 pictures” screen) */}
             <div className="explanationViewBody">
+              {exp?.titleSource && (
+                <div className="sectionCard sectionCardTitleSource">
+                  <div className="sectionTitleWithIcon">
+                    <span className="sectionIcon sectionIconSource">📌</span>
+                    How We Determined This Title
+                  </div>
+                  <div className="sectionText">
+                    {exp.titleSource}
+                  </div>
+                </div>
+              )}
               <div className="sectionCard blue explanationWhyCard">
                 <div className="sectionTitleWithIcon">
                   <span className="sectionIcon sectionIconInfo">!</span>

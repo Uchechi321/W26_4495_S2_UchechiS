@@ -358,6 +358,17 @@
   color: white;
 }
 
+.sectionCardTitleSource {
+  background: #f0f9ff;
+  border: 1px solid #7dd3fc;
+  border-left: 4px solid #0284c7;
+}
+
+.sectionIconSource {
+  background: #0284c7;
+  color: white;
+}
+
 .sectionIconHistory {
   background: #eab308;
   color: #333;
