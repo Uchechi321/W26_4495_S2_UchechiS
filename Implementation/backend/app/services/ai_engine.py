@@ -55,7 +55,9 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
     system = (
         "You are an expert drilling analyst. You explain why wellbore segments are flagged as "
         "critical or warning. Base your answers ONLY on the segment data provided. "
-        "For titleSource, quote the exact phrases from the report that justify the title. "
+        "IMPORTANT: For titleSource write ONE short sentence only: how you determined the title "
+        "(e.g. which keyword or rule). Do NOT quote or repeat the full description. "
+        "Make each segment's analysis distinct: use the actual depth, operation type, and NPT in your wording. "
         "Return valid JSON only, no markdown or extra text."
     )
     user = (
@@ -68,16 +70,12 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
         f"- description (whyItMatters): {desc or '[empty]'}\n"
         f"- recorded_at: {recorded_at}\n"
         f"- equipment (summary): {equipment_summary}\n\n"
-        "Return a single JSON object with exactly these keys (all strings except contributingFactors and the two arrays):\n"
-        '"title" (e.g. "Stuck Pipe Event Analysis"), '
-        '"depthRange" (e.g. "1220m - 1260m"), '
-        '"titleSource" (paragraph explaining how you determined the title, quoting report text), '
-        '"flaggedReason" (paragraph why this was flagged, citing the data above), '
-        '"contributingFactors" (array of objects with "type" ("danger" or "warning"), "heading", "text"), '
-        '"similarEventsInHistory" (paragraph), '
-        '"technicalFactors" (array of strings), '
-        '"preventionMeasures" (array of strings), '
-        '"methodology" (paragraph).'
+        "Return a single JSON object with exactly these keys:\n"
+        '"title", "depthRange", '
+        '"titleSource" (ONE short sentence: how you determined the title; do not repeat the description), '
+        '"flaggedReason", "contributingFactors", "similarEventsInHistory", '
+        '"technicalFactors", "preventionMeasures", "methodology". '
+        "Vary your answers by segment: reference this segment's depth, operation, and NPT so analyses are not generic."
     )
     return system, user
 
@@ -179,68 +177,37 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
     depth_range = f"{depth_from}m - {depth_to}m"
     recorded_at = segment.get("recordedAt") or ""
 
-    # --- Title and explicit source (why we chose this title) ---
+    # --- Title and explicit source: one short sentence, no repeating description ---
     title = "Segment Analysis"
-    title_reasons: List[str] = []
-
     if "stuck" in desc or "stuck pipe" in desc:
         title = "Stuck Pipe Event Analysis"
-        title_reasons.append(
-            f"The report description for this segment contains the phrase 'stuck' or 'stuck pipe'. "
-            f"The exact wording from the report is: {_quote_report(desc_raw)}. "
-            "Therefore this analysis is titled 'Stuck Pipe Event Analysis'."
-        )
+        title_source = "The title was set to 'Stuck Pipe Event Analysis' because the report description contains the phrase 'stuck pipe' or 'stuck'."
     elif "lost circulation" in desc or ("loss" in desc and "circulation" in desc):
         title = "Lost Circulation Event Analysis"
-        title_reasons.append(
-            f"The report mentions lost circulation or mud loss. Description: {_quote_report(desc_raw)}. "
-            "Hence the title 'Lost Circulation Event Analysis'."
-        )
+        title_source = "The title was set to 'Lost Circulation Event Analysis' because the description mentions lost circulation or mud loss."
     elif "kick" in desc or "well control" in desc:
         title = "Well Control Event Analysis"
-        title_reasons.append(
-            f"The report references a kick or well control. Description: {_quote_report(desc_raw)}. "
-            "Hence the title 'Well Control Event Analysis'."
-        )
+        title_source = "The title was set to 'Well Control Event Analysis' because the description references a kick or well control."
     elif level == "critical":
         title = "Critical Event Analysis"
-        title_reasons.append(
-            f"This segment was classified as critical (severity level from report). "
-            f"The reported operation type is '{op_type_raw or 'N/A'}', with {npt} hours NPT and "
-            f"description: {_quote_report(desc_raw)}. No specific event keyword (e.g. stuck pipe) was "
-            "matched, so the title is the generic 'Critical Event Analysis'."
-        )
+        title_source = "The title was set to 'Critical Event Analysis' because the segment severity is critical and no specific event keyword (e.g. stuck pipe) was found in the description."
     elif level == "warning":
         title = "Warning Event Analysis"
-        title_reasons.append(
-            f"The segment is flagged as warning. Operation type: '{op_type_raw or 'N/A'}', "
-            f"NPT: {npt} hours, description: {_quote_report(desc_raw)}. "
-            "Title set to 'Warning Event Analysis'."
-        )
+        title_source = "The title was set to 'Warning Event Analysis' because the segment is flagged as warning in the report."
     else:
-        title_reasons.append(
-            f"Operation type from report: '{op_type_raw or 'N/A'}'. Description: {_quote_report(desc_raw)}. "
-            "No critical/warning keywords matched; title is 'Segment Analysis'."
-        )
+        title_source = "The title is 'Segment Analysis' because no critical or warning keywords matched in the description."
 
-    title_source = " ".join(title_reasons)
-
-    # --- Why was this flagged? (tie directly to report data) ---
+    # --- Why was this flagged? (specific to this segment's data) ---
     parts = [
-        f"For the depth interval {depth_from}m–{depth_to}m, the report records "
-        f"operation type '{op_type_raw or 'N/A'}'"
+        f"This segment covers {depth_from}m–{depth_to}m with operation '{op_type_raw or 'N/A'}'"
     ]
     if npt is not None and npt > 0:
-        parts.append(f" with {npt} hours of non-productive time (NPT)")
+        parts.append(f" and {npt} hours NPT")
     parts.append(". ")
     if desc_raw:
-        parts.append(
-            f"The report states: {_quote_report(desc_raw)}. "
-        )
+        parts.append(f"The report states: {_quote_report(desc_raw)}. ")
     parts.append(
-        "Based on this drilling data, automated rules (NPT thresholds and description keywords) "
-        "and historical pattern recognition, this event was identified as significant. "
-        "The contributing factors below explain exactly which report elements led to this conclusion."
+        "Our rules flag it based on NPT thresholds and description keywords; the contributing factors below spell out which ones applied."
     )
     flagged_reason = "".join(parts)
 
@@ -277,20 +244,9 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
             "heading": "Stuck Pipe Indication from Report",
             "text": (
                 f"The report description for this segment states: {_quote_report(desc_raw)}. "
-                "The presence of 'stuck' or 'stuck pipe' in the wording leads to a critical classification. "
+                "The presence of 'stuck' or 'stuck pipe' leads to a critical classification. "
                 f"Such events in the interval {depth_from}m–{depth_to}m require root cause analysis and "
                 "prevention measures for similar depths."
-            ),
-        })
-
-    if depth_from is not None and depth_to is not None and (depth_from > 0 or depth_to > 0):
-        contributing_factors.append({
-            "type": "danger",
-            "heading": "Depth Interval from Report",
-            "text": (
-                f"The report places this event in the depth range {depth_from}m–{depth_to}m. "
-                "Concentration of incidents in the same interval (from multiple reports or operations) "
-                "indicates problematic formation characteristics or recurring operational challenges at this depth."
             ),
         })
 
@@ -305,51 +261,43 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
             ),
         })
 
-    # --- Similar events (tie to this well/depth) ---
+    # --- Similar events (specific to this depth and operation) ---
     similar_events = (
-        f"For the depth range {depth_range} (as reported for this segment), historical data from offset wells "
-        "in the same field shows a pattern of similar events, often correlating with transition zones in the "
-        "geological formation. This supports the significance of the reported operation and NPT in this interval."
+        f"For the {depth_from}m–{depth_to}m interval and '{op_type_raw or 'N/A'}' operations, "
+        "offset well data in the same field often shows similar events near formation transitions."
     )
 
-    # --- Technical factors (derived from what the report says) ---
+    # --- Technical factors: only those that apply to this segment ---
     technical_factors: List[str] = []
     if "stuck" in desc:
-        technical_factors.append(
-            "Differential sticking risk in this formation (inferred from report description mentioning stuck pipe)."
-        )
+        technical_factors.append("Differential sticking risk (description mentions stuck pipe).")
     if "circulation" in desc or "loss" in desc:
-        technical_factors.append(
-            "Mud loss or circulation issues in interval (reported in segment description)."
-        )
+        technical_factors.append("Mud loss or circulation issues in this interval.")
     if "ream" in op_type or "reaming" in desc:
-        technical_factors.append(
-            f"Extended static time or mechanical stress during reaming (operation type: '{op_type_raw or 'N/A'}')."
-        )
+        technical_factors.append(f"Mechanical stress during reaming at {depth_from}m–{depth_to}m.")
     technical_factors.extend([
-        "Formation permeability changes at depth boundary (common at reported depth interval).",
-        "Increased mud cake thickness in permeable zones.",
-        "Narrow clearance between drill string and wellbore wall.",
+        "Formation permeability changes at depth boundary.",
+        "Mud cake buildup in permeable zones.",
+        "Tight clearance between drill string and wellbore.",
     ])
 
-    # --- Prevention measures (tied to what was done) ---
-    prevention_measures = [
-        "Optimize mud weight to maintain overbalance in this depth range.",
-        "Minimize static time in high-risk depth intervals (e.g. reported interval).",
-        "Enhanced monitoring of torque and drag parameters during operations like those reported.",
-        "Consider modified reaming procedures for the depth range where this event was recorded.",
-    ]
+    # --- Prevention measures: tailored to what was done in this segment ---
+    prevention_measures: List[str] = []
     if "stuck" in desc:
-        prevention_measures.insert(0, "Implement stuck-pipe prevention practices for this formation and depth.")
+        prevention_measures.append("Stuck-pipe prevention practices for this formation and depth.")
+    prevention_measures.extend([
+        "Optimize mud weight for overbalance in this depth range.",
+        "Minimize static time in this interval.",
+        "Monitor torque and drag during operations like this one.",
+    ])
+    if "ream" in op_type or "reaming" in desc:
+        prevention_measures.append("Review reaming procedures for this depth range.")
 
-    # --- Methodology (explicit data sources) ---
+    # --- Methodology (short, no repetition of segment data) ---
     methodology = (
-        "This analysis uses only data from the report for this segment: "
-        "depth_from and depth_to (depth interval), operation_type/eventType (drilling activity), "
-        "npt_hours (non-productive time), and whyItMatters (operation description). "
-        "The title is chosen by matching keywords in the description (e.g. 'stuck pipe', 'lost circulation') "
-        "and the segment severity level. Contributing factors and technical factors are derived from those "
-        "same fields. All conclusions are data-driven and can be traced to the reported values above."
+        "This analysis uses the segment's depth interval, operation type, NPT hours, and description from the report. "
+        "The title comes from keyword matching (e.g. stuck pipe, lost circulation) or severity level. "
+        "Contributing factors and recommendations are derived from those same fields."
     )
 
     return {
