@@ -1,169 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import "../styles/Maintenance.css";
 
-/**
- * Week 4 prototype: hard-coded data (later comes from backend).
- * Each well returns summary + a list of equipment cards.
- */
-const MAINT_DATA = {
-  "WELL-01": {
-    overallRisk: 22,
-    highRiskCount: 0,
-    mediumRiskCount: 1,
-    totalEquipment: 5,
-    equipment: [
-      {
-        id: "eq-mudpumps",
-        name: "Mud Pumps",
-        tag: "Surface",
-        riskLevel: "low",
-        riskScore: 28,
-        note: "Operating efficiently. Routine maintenance schedule on track.",
-        hoursUsed: 920,
-        hoursMax: 3000,
-        action: "Monitor",
-        nextMaintenanceHours: 580,
-      },
-      {
-        id: "eq-topdrive",
-        name: "Top Drive",
-        tag: "Surface",
-        riskLevel: "low",
-        riskScore: 18,
-        note: "Excellent condition. Recent inspection completed with no issues identified.",
-        hoursUsed: 400,
-        hoursMax: 2400,
-        action: "Monitor",
-        nextMaintenanceHours: 900,
-      },
-    ],
-  },
-
-  "WELL-02": {
-    overallRisk: 44,
-    highRiskCount: 1,
-    mediumRiskCount: 2,
-    totalEquipment: 6,
-    equipment: [
-      {
-        id: "eq-drillbit",
-        name: "Drill Bit",
-        tag: "Primary",
-        riskLevel: "high",
-        riskScore: 78,
-        note: "Approaching recommended replacement threshold. Reaming has accelerated wear.",
-        hoursUsed: 245,
-        hoursMax: 300,
-        action: "Inspect",
-        nextMaintenanceHours: 55,
-      },
-      {
-        id: "eq-drillstring",
-        name: "Drill String",
-        tag: "Primary",
-        riskLevel: "medium",
-        riskScore: 61,
-        note: "Operating within normal parameters. Recent stuck pipe event requires monitoring.",
-        hoursUsed: 1600,
-        hoursMax: 2500,
-        action: "Monitor",
-        nextMaintenanceHours: 420,
-      },
-      {
-        id: "eq-motor",
-        name: "Drilling Motor",
-        tag: "Downhole",
-        riskLevel: "medium",
-        riskScore: 54,
-        note: "Performance indicators within acceptable range. No immediate action required.",
-        hoursUsed: 310,
-        hoursMax: 600,
-        action: "Monitor",
-        nextMaintenanceHours: 250,
-      },
-    ],
-  },
-
-  "WELL-03": {
-    overallRisk: 56,
-    highRiskCount: 1,
-    mediumRiskCount: 3,
-    totalEquipment: 6,
-    equipment: [
-      {
-        id: "eq-drillstring",
-        name: "Drill String",
-        tag: "Primary",
-        riskLevel: "medium",
-        riskScore: 65,
-        note: "Operating within normal parameters. Recent stuck pipe event requires continued monitoring.",
-        hoursUsed: 1850,
-        hoursMax: 2500,
-        action: "Monitor",
-        nextMaintenanceHours: 500,
-      },
-      {
-        id: "eq-drillbit",
-        name: "Drill Bit",
-        tag: "Primary",
-        riskLevel: "high",
-        riskScore: 82,
-        note: "Approaching recommended replacement threshold. Multiple reaming operations have accelerated wear.",
-        hoursUsed: 245,
-        hoursMax: 300,
-        action: "Inspect",
-        nextMaintenanceHours: 55,
-      },
-      {
-        id: "eq-motor",
-        name: "Drilling Motor",
-        tag: "Downhole",
-        riskLevel: "medium",
-        riskScore: 58,
-        note: "Performance indicators within acceptable range. No immediate action required.",
-        hoursUsed: 380,
-        hoursMax: 600,
-        action: "Monitor",
-        nextMaintenanceHours: 220,
-      },
-      {
-        id: "eq-topdrive",
-        name: "Top Drive",
-        tag: "Surface",
-        riskLevel: "low",
-        riskScore: 28,
-        note: "Excellent condition. Recent inspection completed with no issues identified.",
-        hoursUsed: 620,
-        hoursMax: 2800,
-        action: "Monitor",
-        nextMaintenanceHours: 950,
-      },
-      {
-        id: "eq-mudpumps",
-        name: "Mud Pumps",
-        tag: "Surface",
-        riskLevel: "low",
-        riskScore: 35,
-        note: "Operating efficiently. Routine maintenance schedule on track.",
-        hoursUsed: 920,
-        hoursMax: 3000,
-        action: "Monitor",
-        nextMaintenanceHours: 580,
-      },
-      {
-        id: "eq-bha",
-        name: "Bottom Hole Assembly",
-        tag: "Downhole",
-        riskLevel: "medium",
-        riskScore: 70,
-        note: "Exposure to high-stress events. Recommend inspection at next trip.",
-        hoursUsed: 280,
-        hoursMax: 400,
-        action: "Inspect",
-        nextMaintenanceHours: 120,
-      },
-    ],
-  },
+/** Default empty shape so the page always has valid data to render. */
+const EMPTY_DATA = {
+  overallRisk: 0,
+  highRiskCount: 0,
+  mediumRiskCount: 0,
+  totalEquipment: 0,
+  equipment: [],
 };
 
 function clampPercent(p) {
@@ -192,11 +37,61 @@ function SummaryCard({ tone, label, value, note }) {
 export default function Maintenance() {
   const { wellId } = useParams();
   const navigate = useNavigate();
+  const [data, setData] = useState(EMPTY_DATA);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const data = MAINT_DATA[wellId] ?? MAINT_DATA["WELL-03"];
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    fetch(`/api/wells/${wellId}/maintenance`)
+      .then((res) => {
+        if (!res.ok) throw new Error(res.status === 404 ? "Well not found" : `Error ${res.status}`);
+        return res.json();
+      })
+      .then((json) => {
+        if (cancelled) return;
+        setData({
+          overallRisk: json.overallRisk ?? 0,
+          highRiskCount: json.highRiskCount ?? 0,
+          mediumRiskCount: json.mediumRiskCount ?? 0,
+          totalEquipment: json.totalEquipment ?? 0,
+          equipment: Array.isArray(json.equipment) ? json.equipment : [],
+        });
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message || "Failed to load maintenance data");
+        if (!cancelled) setData(EMPTY_DATA);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [wellId]);
+
+  if (loading) {
+    return (
+      <div className="pmPage">
+        <button className="pmBack" onClick={() => navigate(`/wells/${wellId}`)}>← Back to Dashboard</button>
+        <div className="pmHeader">
+          <div className="pmHeaderIcon">🔧</div>
+          <div>
+            <h1 className="pmTitle">Predictive Maintenance</h1>
+            <div className="pmSub">Loading maintenance data…</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pmPage">
+      {error && (
+        <div className="pmError" style={{ padding: "12px", marginBottom: "12px", background: "#fff0f0", border: "1px solid #ffd1d1", borderRadius: "12px", color: "#c00" }}>
+          {error}
+        </div>
+      )}
       <button className="pmBack" onClick={() => navigate(`/wells/${wellId}`)}>
         ← Back to Dashboard
       </button>
@@ -249,7 +144,12 @@ export default function Maintenance() {
 
       {/* Equipment cards */}
       <div className="pmEquipList">
-        {data.equipment.map((eq) => {
+        {data.equipment.length === 0 ? (
+          <div className="pmEquipCard low">
+            <div className="pmEquipNote">No equipment data for this well yet. Upload reports with equipment (Assembly Components) to see maintenance analysis.</div>
+          </div>
+        ) : (
+        data.equipment.map((eq) => {
           const pct = clampPercent((eq.hoursUsed / eq.hoursMax) * 100);
 
           return (
@@ -297,15 +197,15 @@ export default function Maintenance() {
               </div>
             </div>
           );
-        })}
+        })
+        )}
       </div>
 
       <div className="pmMethod">
         <div className="pmMethodTitle">Predictive Maintenance Methodology</div>
         <div className="pmMethodText">
-          Risk scores are computed from operating hours and exposure to high-stress drilling events
-          (Week 4 prototype). In later weeks, this page will load analytics automatically from the
-          backend based on the uploaded dataset.
+          Risk scores are computed from equipment in uploaded reports and well NPT/critical events.
+          Data is loaded from the backend based on reports for this well.
         </div>
       </div>
     </div>

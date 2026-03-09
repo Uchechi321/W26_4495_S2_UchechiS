@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
-from ..services.ai_engine import analyze_segment
+from ..services.ai_engine import analyze_segment, get_maintenance_analysis
 from ..models.well import Well
 from ..models.operation import Operation
 from ..models.daily_report import DailyReport
@@ -150,6 +150,75 @@ def get_segment_analysis(well_id: str, body: SegmentAnalysisRequest):
     """Return AI-generated explanation for why a segment was flagged (e.g. red critical)."""
     context = {"well_id": well_id, "equipment": body.equipment or []}
     return analyze_segment(body.segment, context)
+
+
+@router.get("/{well_id}/maintenance")
+def get_well_maintenance(well_id: str, db: Session = Depends(get_db)):
+    """
+    Predictive maintenance summary for the Maintenance page. Uses equipment from all
+    uploaded reports for this well and (optionally) LLM to produce overallRisk,
+    highRiskCount, mediumRiskCount, totalEquipment, and equipment cards. Same shape
+    as frontend Maintenance.jsx expects.
+    """
+    well = db.query(Well).filter(Well.well_id == well_id).first()
+    if not well:
+        raise HTTPException(status_code=404, detail=f"Well '{well_id}' not found")
+
+    reports = db.query(DailyReport).filter(DailyReport.well_id == well_id).all()
+    report_ids = [r.report_id for r in reports]
+    equipment_list = []
+    if report_ids:
+        items = db.query(Equipment).filter(Equipment.report_id.in_(report_ids)).order_by(Equipment.report_id, Equipment.id).all()
+        raw = [
+            {
+                "component_type": e.component_type,
+                "joints": e.joints,
+                "length_ft": e.length_ft,
+                "od_in": e.od_in,
+                "id_in": e.id_in,
+                "connection": e.connection,
+                "weight_ppf": e.weight_ppf,
+                "grade": e.grade,
+                "pin_box": e.pin_box,
+                "serial_no": e.serial_no,
+                "spiral": e.spiral,
+                "fish_neck_length_ft": e.fish_neck_length_ft,
+                "fish_neck_od": e.fish_neck_od,
+            }
+            for e in items
+        ]
+        # One entry per equipment type: group by component_type (case-insensitive), accumulate joints/length
+        by_type = {}
+        for e in raw:
+            key = (e.get("component_type") or "Equipment").strip().lower() or "equipment"
+            if key not in by_type:
+                by_type[key] = {
+                    "component_type": (e.get("component_type") or "Equipment").strip() or "Equipment",
+                    "joints": 0,
+                    "length_ft": 0,
+                    "od_in": e.get("od_in"),
+                    "id_in": e.get("id_in"),
+                    "connection": e.get("connection"),
+                    "weight_ppf": e.get("weight_ppf"),
+                    "grade": e.get("grade"),
+                    "pin_box": e.get("pin_box"),
+                    "serial_no": e.get("serial_no"),
+                    "spiral": e.get("spiral"),
+                    "fish_neck_length_ft": e.get("fish_neck_length_ft"),
+                    "fish_neck_od": e.get("fish_neck_od"),
+                    "_report_count": 0,
+                }
+            by_type[key]["joints"] = (by_type[key]["joints"] or 0) + (e.get("joints") or 0)
+            by_type[key]["length_ft"] = (by_type[key]["length_ft"] or 0) + (e.get("length_ft") or 0)
+            by_type[key]["_report_count"] = by_type[key]["_report_count"] + 1
+        equipment_list = [v for v in by_type.values()]
+
+    ops = db.query(Operation).filter(Operation.well_id == well_id).all()
+    total_npt = sum(o.npt_hours or 0 for o in ops)
+    critical_count = sum(1 for o in ops if (o.npt_hours or 0) >= 2)
+
+    context = {"well_id": well_id, "total_npt": total_npt, "critical_count": critical_count}
+    return get_maintenance_analysis(equipment_list, context)
 
 
 @router.get("/{well_id}/reports")

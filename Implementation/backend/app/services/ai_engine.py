@@ -311,3 +311,116 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
         "preventionMeasures": prevention_measures,
         "methodology": methodology,
     }
+
+
+# --- Predictive Maintenance (same shape as Maintenance.jsx) ---
+
+def _equipment_to_maintenance_card(e: Dict[str, Any], index: int, total_npt: float, has_critical: bool) -> Dict[str, Any]:
+    name = (e.get("component_type") or "Equipment").strip() or "Equipment"
+    comp_lower = name.lower()
+    if "pump" in comp_lower or "mud" in comp_lower:
+        tag, hours_max = "Surface", 3000
+    elif "drive" in comp_lower or "top" in comp_lower:
+        tag, hours_max = "Surface", 2800
+    elif "drill" in comp_lower and "string" in comp_lower:
+        tag, hours_max = "Primary", 2500
+    elif "bit" in comp_lower or "drill" in comp_lower:
+        tag, hours_max = "Primary", 300
+    elif "motor" in comp_lower or "bha" in comp_lower or "assembly" in comp_lower:
+        tag, hours_max = "Downhole", 600
+    else:
+        tag, hours_max = "Primary", 2000
+    joints = e.get("joints") or 0
+    length_ft = e.get("length_ft") or 0
+    usage_proxy = max(0, (joints * 100 + length_ft * 2)) if (joints or length_ft) else 400
+    hours_used = min(int(usage_proxy), hours_max - 50)
+    pct = (hours_used / hours_max) * 100 if hours_max else 0
+    if has_critical or total_npt >= 5:
+        risk_score = min(100, int(pct * 0.6 + 45))
+    elif total_npt >= 2:
+        risk_score = min(100, int(pct * 0.5 + 35))
+    else:
+        risk_score = min(100, int(pct * 0.4 + 15))
+    risk_level = "high" if risk_score >= 65 else "medium" if risk_score >= 40 else "low"
+    action = "Inspect" if risk_level == "high" else "Monitor"
+    next_hrs = max(0, hours_max - hours_used)
+    report_count = e.get("_report_count")
+    note = f"Based on report: {name} (joints: {joints}, length_ft: {length_ft}). Risk from usage proxy and well NPT."
+    if report_count and report_count > 1:
+        note = f"Accumulated across {report_count} reports: {name} (total joints: {joints}, total length_ft: {length_ft}). Risk from usage proxy and well NPT."
+    return {
+        "id": f"eq-{index}-{name.replace(' ', '-').lower()[:20]}",
+        "name": name,
+        "tag": tag,
+        "riskLevel": risk_level,
+        "riskScore": risk_score,
+        "note": note,
+        "hoursUsed": hours_used,
+        "hoursMax": hours_max,
+        "action": action,
+        "nextMaintenanceHours": next_hrs,
+    }
+
+
+def _maintenance_rule_based(equipment_list: List[Dict[str, Any]], context: Dict[str, Any]) -> Dict[str, Any]:
+    total_npt = float(context.get("total_npt") or 0)
+    has_critical = bool(context.get("critical_count") or 0)
+    cards = [_equipment_to_maintenance_card(e, i, total_npt, has_critical) for i, e in enumerate(equipment_list)]
+    if not cards:
+        cards = [_equipment_to_maintenance_card({"component_type": "No equipment recorded", "joints": 0, "length_ft": 0}, 0, total_npt, has_critical)]
+    high = sum(1 for c in cards if c["riskLevel"] == "high")
+    medium = sum(1 for c in cards if c["riskLevel"] == "medium")
+    overall = int(sum(c["riskScore"] for c in cards) / len(cards)) if cards else 0
+    return {"overallRisk": overall, "highRiskCount": high, "mediumRiskCount": medium, "totalEquipment": len(cards), "equipment": cards}
+
+
+def _build_maintenance_llm_prompt(equipment_list: List[Dict[str, Any]], context: Dict[str, Any]) -> tuple:
+    total_npt = context.get("total_npt") or 0
+    critical_count = context.get("critical_count") or 0
+    well_id = context.get("well_id") or ""
+    eq_lines = "\n".join(f"- {e.get('component_type') or 'Unknown'} (joints: {e.get('joints')}, length_ft: {e.get('length_ft')})" for e in equipment_list[:30])
+    if len(equipment_list) > 30:
+        eq_lines += f"\n... and {len(equipment_list) - 30} more."
+    system = "You are a drilling predictive maintenance analyst. Return ONLY valid JSON. Structure: {\"overallRisk\": 0-100, \"highRiskCount\": n, \"mediumRiskCount\": n, \"totalEquipment\": n, \"equipment\": [{\"id\": \"eq-0-x\", \"name\": string, \"tag\": \"Surface\"|\"Primary\"|\"Downhole\", \"riskLevel\": \"low\"|\"medium\"|\"high\", \"riskScore\": 0-100, \"note\": string, \"hoursUsed\": number, \"hoursMax\": number, \"action\": \"Monitor\"|\"Inspect\", \"nextMaintenanceHours\": number}]}."
+    user = f"Well: {well_id}. NPT: {total_npt} hrs. Critical: {critical_count}. Equipment (one row per type, accumulated across reports):\n{eq_lines}\nReturn the JSON. Use component_type as name. One card per equipment type, unique id per item."
+    return system, user
+
+
+def _try_llm_maintenance(equipment_list: List[Dict[str, Any]], context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    if not api_key or not OpenAI:
+        return None
+    system, user = _build_maintenance_llm_prompt(equipment_list, context)
+    model = os.environ.get("SEGMENT_ANALYSIS_MODEL", "gpt-4o-mini")
+    try:
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(model=model, messages=[{"role": "system", "content": system}, {"role": "user", "content": user}], response_format={"type": "json_object"}, max_tokens=2000)
+        content = (resp.choices[0].message.content or "").strip()
+        if not content:
+            return None
+        data = json.loads(content)
+        if not isinstance(data, dict) or "equipment" not in data or not isinstance(data["equipment"], list):
+            return None
+        for c in data["equipment"]:
+            if not isinstance(c, dict):
+                return None
+            c["id"] = c.get("id") or f"eq-{hash(c.get('name','')) % 10000}"
+            c["riskLevel"] = "high" if (c.get("riskScore") or 0) >= 65 else "medium" if (c.get("riskScore") or 0) >= 40 else "low"
+            c["action"] = c.get("action") or ("Inspect" if c["riskLevel"] == "high" else "Monitor")
+            c["hoursUsed"] = int(c.get("hoursUsed") or 0)
+            c["hoursMax"] = int(c.get("hoursMax") or 1000)
+            c["nextMaintenanceHours"] = int(c.get("nextMaintenanceHours") or max(0, c["hoursMax"] - c["hoursUsed"]))
+        data["overallRisk"] = int(data.get("overallRisk") or 0)
+        data["highRiskCount"] = int(data.get("highRiskCount") or 0)
+        data["mediumRiskCount"] = int(data.get("mediumRiskCount") or 0)
+        data["totalEquipment"] = len(data["equipment"])
+        return data
+    except Exception:
+        return None
+
+
+def get_maintenance_analysis(equipment_list: List[Dict[str, Any]], context: Dict[str, Any]) -> Dict[str, Any]:
+    result = _try_llm_maintenance(equipment_list, context)
+    if result is not None:
+        return result
+    return _maintenance_rule_based(equipment_list, context)
