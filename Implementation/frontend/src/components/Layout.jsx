@@ -16,10 +16,10 @@ export default function Layout() {
           </NavLink>
 
           <NavLink
-            to="/reports"
+            to="/summary-reports"
             className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
           >
-            Reports
+            Summary Reports
           </NavLink>
         </nav>
       </aside>

@@ -53,6 +53,40 @@ def create_well(
     return {"status": "created", "well_id": well_id}
 
 
+@router.get("/summary")
+def get_wells_summary(db: Session = Depends(get_db)):
+    """Return per-well summary (KPIs + report count) for the Summary Reports page."""
+    wells = db.query(Well).all()
+    result = []
+    for w in wells:
+        report_count = db.query(DailyReport).filter(DailyReport.well_id == w.well_id).count()
+        ops = (
+            db.query(Operation)
+            .filter(Operation.well_id == w.well_id)
+            .all()
+        )
+        total_npt = sum(o.npt_hours or 0 for o in ops)
+        depth_max = max((o.depth_to or 0 for o in ops), default=0)
+        critical = sum(1 for o in ops if (o.npt_hours or 0) >= 2)
+        high_risk = sum(1 for o in ops if (o.npt_hours or 0) > 0)
+        maintenance_risk = "Low" if total_npt == 0 else "Medium" if total_npt < 5 else "High"
+        result.append({
+            "well_id": w.well_id,
+            "well_name": w.well_name,
+            "location": w.location,
+            "report_count": report_count,
+            "kpis": {
+                "depthMax": depth_max,
+                "nptHours": round(total_npt, 2),
+                "eventCount": len(ops),
+                "criticalEvents": critical,
+                "highRiskZones": high_risk,
+                "maintenanceRisk": maintenance_risk,
+            },
+        })
+    return result
+
+
 @router.get("/{well_id}/dashboard")
 def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
     well = db.query(Well).filter(Well.well_id == well_id).first()

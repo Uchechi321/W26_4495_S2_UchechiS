@@ -6,6 +6,7 @@ import Reports from "./pages/Reports";
 import ReportDetail from "./pages/ReportDetail";
 import Maintenance from "./pages/Maintenance";
 import UploadReport from "./pages/UploadReport";
+import SummaryReports from "./pages/SummaryReports";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import EditReport from "./pages/EditReport";
@@ -34,6 +35,8 @@ export default function App() {
 
           <Route path="/wells/:wellId/maintenance" element={<Maintenance />} />
           <Route path="/wells/:wellId/upload" element={<UploadReport />} />
+
+          <Route path="/summary-reports" element={<SummaryReports />} />
 
           <Route path="/reports/edit/:reportId" element={<EditReport />} />
 
