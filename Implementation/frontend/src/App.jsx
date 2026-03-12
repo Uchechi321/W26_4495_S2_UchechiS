@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Wells from "./pages/Wells";
 import Dashboard from "./pages/Dashboards";
@@ -19,9 +19,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* 🔹 Public routes (NO LAYOUT) */}
-        <Route path="/" element={<Home />} />     {/* ← Home is now clean */}
+        {/* Home page first — default when opening the app */}
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
 

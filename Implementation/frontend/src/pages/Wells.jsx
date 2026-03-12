@@ -5,11 +5,11 @@ import "../styles/Wells.css";
 export default function Wells() {
   const navigate = useNavigate();
 
-  // Redirect to login if not authenticated
+  // Redirect to home if not authenticated (home page appears first)
   useEffect(() => {
     const loggedIn = localStorage.getItem("auth");
-    if (!loggedIn) navigate("/login");
-  }, []);
+    if (!loggedIn) navigate("/");
+  }, [navigate]);
 
 
   const [wells, setWells] = useState([]);
@@ -81,7 +81,7 @@ export default function Wells() {
             className="logoutBtn"
             onClick={() => {
               localStorage.removeItem("auth");
-              navigate("/login");
+              navigate("/");
             }}
           >
             Logout
