@@ -21,6 +21,13 @@ export default function Layout() {
           >
             Summary Reports
           </NavLink>
+
+          <NavLink
+            to="/well-locations"
+            className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
+          >
+            Well Location
+          </NavLink>
         </nav>
       </aside>
 
