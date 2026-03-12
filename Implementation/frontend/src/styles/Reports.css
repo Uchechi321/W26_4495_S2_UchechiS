@@ -1,20 +1,18 @@
-/* Page wrapper */
 .reportsPage {
   padding: 32px;
-  background: #f7f9fc;
+  background: var(--color-bg-main);
   min-height: 100vh;
 }
 
-/* Page title */
 .reportsTitle {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 24px;
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 .reportsTitle span {
-  color: #2b7cff;
+  color: var(--color-primary);
 }
 
 /* Upload box spacing */
@@ -86,7 +84,7 @@
 }
 
 .reportCard:hover .reportArrow {
-  color: #2b7cff;
+  color: var(--color-primary);
   transform: translateX(4px);
 }
 

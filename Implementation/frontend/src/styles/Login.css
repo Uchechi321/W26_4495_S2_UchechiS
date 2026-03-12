@@ -1,155 +1,4 @@
-/* Full page */
-.loginPage {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f7f9fc;
-  padding: 20px;
-}
-
-/* Card */
-.loginCard {
-  width: 380px;
-  background: #ffffff;
-  padding: 36px;
-  border-radius: 16px;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
-  animation: fadeIn 0.3s ease;
-}
-
-/* Title */
-.loginTitle {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-  text-align: center;
-  color: white;
-}
-
-.loginSubtitle {
-  text-align: center;
-  margin-top: 6px;
-  margin-bottom: 24px;
-  color: #007bff;
-}
-
-/* Form */
-.loginForm {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.loginForm label {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-}
-
-.loginForm input {
-  padding: 12px 14px;
-  border: 1px solid #d0d5dd;
-  border-radius: 8px;
-  font-size: 15px;
-  background: #fafbfc;
-  transition: 0.2s ease;
-}
-
-.loginForm input:focus {
-  border-color: #007bff;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
-  outline: none;
-}
-
-/* Error */
-.loginError {
-  background: #ffe6e6;
-  color: #b30000;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  text-align: center;
-}
-
-/* Button */
-.loginBtn {
-  margin-top: 10px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #007bff, #005fcc);
-  color: white;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 600;
-  transition: 0.2s ease;
-}
-
-.loginBtn:hover {
-  background: linear-gradient(135deg, #006ae6, #004fae);
-  transform: translateY(-2px);
-}
-
-/* Animation */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-  }
-}
-.loginSwitch {
-  margin-top: 14px;
-  text-align: center;
-  font-size: 14px;
-  color: #555;
-}
-
-.loginSwitch span {
-  color: #007bff;
-  cursor: pointer;
-  font-weight: 600;
-}
-.loginPage,
-.signupPage {
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  /* 🔵 Modern blue gradient background */
-  background: linear-gradient(135deg, #0a2a43, #0f4c75, #3282b8);
-  padding: 20px;
-}
-.loginCard,
-.signupCard {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-}
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background: none;
-}
-.loginPage {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  background: linear-gradient(135deg, #0a2a43, #0f4c75, #3282b8);
-}
-
-/* -------------------------------------------
-   🔹 LOGIN & SIGNUP FULLSCREEN PAGE
--------------------------------------------- */
+/* Login & Signup – gradient + glass card, unified primary */
 .loginPage,
 .signupPage {
   width: 100%;
@@ -157,29 +6,42 @@ html, body, #root {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #0a2a43, #0f4c75, #3282b8);
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #2563eb 100%);
   padding: 20px;
-
-  /* Prevent split layout */
   position: absolute;
   top: 0;
   left: 0;
 }
 
-/* Glass Card */
 .loginCard,
 .signupCard {
   width: 380px;
   padding: 36px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
   animation: fadeIn 0.3s ease;
 }
 
-/* Forms */
+.loginTitle,
+.signupTitle {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  text-align: center;
+  color: #fff;
+}
+
+.loginSubtitle,
+.signupSubtitle {
+  text-align: center;
+  margin-top: 6px;
+  margin-bottom: 24px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 .loginForm,
 .signupForm {
   display: flex;
@@ -187,30 +49,46 @@ html, body, #root {
   gap: 14px;
 }
 
+.loginForm label,
+.signupForm label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
 .loginForm input,
 .signupForm input {
   padding: 12px 14px;
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 15px;
-  background: #fafbfc;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
   transition: 0.2s ease;
 }
 
 .loginForm input:focus,
 .signupForm input:focus {
-  border-color: #007bff;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
   outline: none;
 }
 
-/* Buttons */
+.loginError,
+.signupError {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+}
+
 .loginBtn,
 .signupBtn {
   margin-top: 10px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, #007bff, #005fcc);
+  background: var(--color-primary);
   color: white;
   border-radius: 8px;
   border: none;
@@ -222,17 +100,16 @@ html, body, #root {
 
 .loginBtn:hover,
 .signupBtn:hover {
-  background: linear-gradient(135deg, #006ae6, #004fae);
+  background: var(--color-primary-hover);
   transform: translateY(-2px);
 }
 
-/* Switch Links */
 .loginSwitch,
 .signupSwitch {
   margin-top: 14px;
   text-align: center;
   font-size: 14px;
-  color: #eee;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .loginSwitch span,
@@ -240,9 +117,14 @@ html, body, #root {
   color: #fff;
   cursor: pointer;
   font-weight: 600;
+  text-decoration: underline;
 }
 
-/* Animation */
+.loginSwitch span:hover,
+.signupSwitch span:hover {
+  opacity: 0.9;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -250,11 +132,13 @@ html, body, #root {
   }
   to {
     opacity: 1;
+    transform: translateY(0);
   }
 }
+
 .backArrow {
   font-size: 16px;
-  color: #47484a;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   margin-bottom: 12px;
   font-weight: 600;
@@ -263,7 +147,6 @@ html, body, #root {
 }
 
 .backArrow:hover {
-  color: #e0e4ed;
+  color: #fff;
   transform: translateX(-3px);
 }
-

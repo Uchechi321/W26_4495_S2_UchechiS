@@ -11,11 +11,12 @@
   font-size: 22px;
   font-weight: 900;
   margin: 0 0 4px 0;
+  color: var(--color-text);
 }
 
 .wellLocationsSub {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -26,7 +27,7 @@
 }
 
 .wellLocationsError {
-  color: #dc3545;
+  color: var(--color-danger);
 }
 
 .wellLocationsContent {
@@ -39,7 +40,7 @@
 .wellLocationsMapWrap {
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   min-height: 450px;
 }
 
@@ -50,8 +51,8 @@
 }
 
 .wellLocationsList {
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   padding: 16px;
 }
@@ -59,7 +60,7 @@
 .wellLocationsList h3 {
   font-size: 14px;
   margin: 0 0 10px 0;
-  color: #333;
+  color: var(--color-text);
 }
 
 .wellLocationsList ul {
@@ -70,7 +71,7 @@
 
 .wellLocationsList li {
   padding: 6px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--color-border);
   font-size: 13px;
 }
 
@@ -79,7 +80,7 @@
 }
 
 .wellLocationsList a {
-  color: #2b7cff;
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -89,7 +90,7 @@
 
 .wellLocationsListLocation {
   display: block;
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 12px;
   margin-top: 2px;
 }
@@ -97,13 +98,13 @@
 .wellLocationsListOther {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--color-border);
 }
 
 .wellLocationsListOther h4 {
   font-size: 12px;
   margin: 0 0 8px 0;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .wellLocationsListOther ul {

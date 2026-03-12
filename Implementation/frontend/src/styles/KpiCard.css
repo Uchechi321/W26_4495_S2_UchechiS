@@ -1,8 +1,8 @@
-.kpiCard{
-  border: 1px solid #eee;
+.kpiCard {
+  border: 1px solid var(--color-border);
   border-radius: 18px;
   padding: 18px;
-  background: #fff;
+  background: var(--color-card);
   box-shadow: 0 1px 0 rgba(0,0,0,0.03);
 }
 
@@ -10,52 +10,53 @@
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
+
 .kpiCardClickable:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
+
 .kpiCardClickable:focus {
-  outline: 2px solid #1f5fff;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-.kpiTop{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+.kpiTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 14px;
 }
 
-.kpiIcon{
+.kpiIcon {
   width: 44px;
   height: 44px;
   border-radius: 14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#f2f2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-main);
   font-size: 20px;
 }
 
-.kpiBadge{
+.kpiBadge {
   font-weight: 600;
   padding: 8px 12px;
   border-radius: 14px;
   font-size: 14px;
-  background:#f2f2f2;
+  background: var(--color-bg-main);
 }
 
-.kpiTitle{ font-size: 16px; margin-top: 6px; }
-.kpiValue{ font-size: 44px; font-weight: 800; margin: 6px 0; }
-.kpiSub{ opacity: .7; }
+.kpiTitle { font-size: 16px; margin-top: 6px; color: var(--color-text); }
+.kpiValue { font-size: 44px; font-weight: 800; margin: 6px 0; color: var(--color-text); }
+.kpiSub { opacity: 0.7; color: var(--color-text-muted); }
 
-/* LIGHT TONES */
-.kpiCard.danger{ background: #fdecec; border-color: #f6bdbd; }
-.kpiCard.warning{ background: #fff3df; border-color: #f3d1a2; }
-.kpiCard.risk{ background: #fff8c9; border-color: #f0de7e; }
-.kpiCard.status{ background: #e9f7ef; border-color: #a6e3bf; }
+.kpiCard.danger { background: var(--color-danger-bg); border-color: #fecaca; }
+.kpiCard.warning { background: var(--color-warning-bg); border-color: #fcd34d; }
+.kpiCard.risk { background: #fef9c3; border-color: #fde047; }
+.kpiCard.status { background: var(--color-success-bg); border-color: #6ee7b7; }
 
-.kpiBadge.danger{ background:#ffdada; }
-.kpiBadge.warning{ background:#ffe6c6; }
-.kpiBadge.risk{ background:#fff0a8; }
-.kpiBadge.status{ background:#d8f2e3; }
+.kpiBadge.danger { background: var(--color-danger-bg); }
+.kpiBadge.warning { background: var(--color-warning-bg); }
+.kpiBadge.risk { background: #fef9c3; }
+.kpiBadge.status { background: var(--color-success-bg); }

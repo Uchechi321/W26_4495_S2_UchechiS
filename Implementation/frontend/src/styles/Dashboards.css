@@ -12,21 +12,29 @@
 .dashTitle {
   font-size: 22px;
   font-weight: 900;
+  color: var(--color-text);
 }
 
 .dashSub {
   margin-top: 4px;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .pmBtn {
-  border: 1px solid #cfd8dc;
-  background: white;
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
   padding: 10px 14px;
   border-radius: 12px;
   cursor: pointer;
   font-weight: 600;
+  transition: 0.2s ease;
+}
+
+.pmBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .dashGrid {
@@ -40,17 +48,20 @@
   display: grid;
   gap: 14px;
 }
+
 .reportsBtn {
   padding: 10px 16px;
-  background: #2b7cff;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: 0.2s;
   margin-left: 10px;
+  font-weight: 600;
 }
+
 .reportsBtn:hover {
-  background: #195fcc;
+  background: var(--color-primary-hover);
 }
 

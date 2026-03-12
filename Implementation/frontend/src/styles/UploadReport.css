@@ -27,7 +27,7 @@
 
 .uploadBtn2 {
   padding: 10px 16px;
-  background: #007bff;
+  background: var(--color-primary);
   color: white;
   border-radius: 6px;
   border: none;
@@ -35,7 +35,7 @@
 }
 
 .uploadBtn2:hover {
-  background: #005fcc;
+  background: var(--color-primary-hover);
 }
 
 .uploadStatus {
@@ -57,7 +57,7 @@
 
 .backToReportsBtn {
   margin-top: 12px;
-  background: #0b5cff;
+  background: var(--color-primary);
   color: white;
   border: none;
   padding: 10px 18px;
@@ -66,6 +66,6 @@
 }
 
 .backToReportsBtn:hover {
-  background: #0848cc;
+  background: var(--color-primary-hover);
 }
 

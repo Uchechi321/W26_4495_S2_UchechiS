@@ -1,60 +1,68 @@
-/* RESET DEFAULTS */
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
-}
-
 /* -------------------------------------------
-   🔹 DASHBOARD LAYOUT (ONLY when Layout.jsx renders)
+   🔹 LAYOUT – dark sidebar, light content
 -------------------------------------------- */
 .layoutContainer {
   display: flex;
   min-height: 100vh;
   width: 100%;
-  overflow: hidden;   /* Prevents weird shrinking */
+  overflow: hidden;
   position: relative;
 }
 
-/* Sidebar */
+/* Sidebar – dark blue, matches Home/Login */
 .sidebar {
   width: 220px;
   padding: 16px;
-  border-right: 1px solid #ddd;
-  background: #d5dfea;
+  border-right: none;
+  background: var(--color-sidebar-bg);
 }
 
 .sidebarTitle {
   margin-top: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-sidebar-text);
+  letter-spacing: -0.02em;
 }
 
 .nav {
   display: grid;
-  gap: 8px;
+  gap: 6px;
+  margin-top: 20px;
 }
 
 .navLink {
   display: block;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 8px;
   text-decoration: none;
-  color: black;
+  color: var(--color-sidebar-text-dim);
+  font-weight: 500;
+  font-size: 0.9rem;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.navLink:hover {
+  color: var(--color-sidebar-text);
+  background: var(--color-sidebar-active);
 }
 
 .navLink.active {
-  background: #eaeaea;
+  background: var(--color-sidebar-active);
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-sidebar-active-border);
+  padding-left: 9px;
 }
 
 /* -------------------------------------------
-   🔹 MAIN CONTENT AREA (FIXED)
+   🔹 MAIN CONTENT AREA
 -------------------------------------------- */
 .layoutContent {
-  flex: 1;          /* Take full remaining width */
+  flex: 1;
   width: 100%;
-  min-width: 0;     /* ⚡ REQUIRED FIX – prevents half-page layout */
+  min-width: 0;
   max-width: none;
   overflow-y: auto;
-  background: #f7f9fc;
+  background: var(--color-bg-main);
   padding: 20px;
 }
