@@ -179,11 +179,45 @@ class SegmentAnalysisRequest(BaseModel):
     equipment: list = []
 
 
+class TextAnalysisRequest(BaseModel):
+    text: str
+
+
 @router.post("/{well_id}/segment-analysis")
 def get_segment_analysis(well_id: str, body: SegmentAnalysisRequest):
     """Return AI-generated explanation for why a segment was flagged (e.g. red critical)."""
     context = {"well_id": well_id, "equipment": body.equipment or []}
     return analyze_segment(body.segment, context)
+
+
+@router.post("/segment-text-analysis")
+def analyze_segment_text(body: TextAnalysisRequest):
+    """
+    Analyze free-text from a segment description (e.g. the 'Description' section text)
+    and return the same structured explanation used by SegmentModal:
+
+    - How we determined this title        -> titleSource
+    - Why was this flagged                -> flaggedReason
+    - Contributing factors                -> contributingFactors
+    - Similar events in well history      -> similarEventsInHistory
+    - Technical factors identified        -> technicalFactors
+    - Recommended prevention measures     -> preventionMeasures
+    - Analysis methodology                -> methodology
+
+    This reuses the existing analyze_segment logic by constructing a minimal
+    segment object where 'whyItMatters' is the provided text.
+    """
+    segment = {
+        "from": None,
+        "to": None,
+        "operationType": None,
+        "eventType": None,
+        "nptHours": None,
+        "level": "normal",
+        "whyItMatters": body.text,
+        "recordedAt": None,
+    }
+    return analyze_segment(segment, context={})
 
 
 @router.get("/{well_id}/maintenance")

@@ -181,21 +181,49 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
     title = "Segment Analysis"
     if "stuck" in desc or "stuck pipe" in desc:
         title = "Stuck Pipe Event Analysis"
-        title_source = "The title was set to 'Stuck Pipe Event Analysis' because the report description contains the phrase 'stuck pipe' or 'stuck'."
+        title_source = (
+            "The title was set to 'Stuck Pipe Event Analysis' because the report "
+            "description contains the phrase 'stuck pipe' or 'stuck'."
+        )
     elif "lost circulation" in desc or ("loss" in desc and "circulation" in desc):
         title = "Lost Circulation Event Analysis"
-        title_source = "The title was set to 'Lost Circulation Event Analysis' because the description mentions lost circulation or mud loss."
+        title_source = (
+            "The title was set to 'Lost Circulation Event Analysis' because the "
+            "description mentions lost circulation or mud loss."
+        )
     elif "kick" in desc or "well control" in desc:
         title = "Well Control Event Analysis"
-        title_source = "The title was set to 'Well Control Event Analysis' because the description references a kick or well control."
+        title_source = (
+            "The title was set to 'Well Control Event Analysis' because the description "
+            "references a kick or well control."
+        )
     elif level == "critical":
         title = "Critical Event Analysis"
-        title_source = "The title was set to 'Critical Event Analysis' because the segment severity is critical and no specific event keyword (e.g. stuck pipe) was found in the description."
+        title_source = (
+            "The title was set to 'Critical Event Analysis' because the segment severity "
+            "is critical and no specific event keyword (e.g. stuck pipe) was found "
+            "in the description."
+        )
     elif level == "warning":
         title = "Warning Event Analysis"
-        title_source = "The title was set to 'Warning Event Analysis' because the segment is flagged as warning in the report."
+        title_source = (
+            "The title was set to 'Warning Event Analysis' because the segment is "
+            "flagged as warning in the report."
+        )
+    elif npt is not None and npt > 0:
+        # Normal severity but with NPT: still highlight this as an NPT-driven event
+        title = f"NPT Event Analysis — {op_type_raw or 'Operation'} at {depth_range}"
+        title_source = (
+            "The title highlights non-productive time in this segment by combining "
+            "its NPT hours, operation type, and depth range."
+        )
     else:
-        title_source = "The title is 'Segment Analysis' because no critical or warning keywords matched in the description."
+        # Fully normal segment: differentiate titles using operation + depth
+        title = f"Segment Analysis — {op_type_raw or 'Operation'} at {depth_range}"
+        title_source = (
+            "The title combines the operation type and depth range for this segment "
+            "because no specific critical or warning keywords were found in the description."
+        )
 
     # --- Why was this flagged? (specific to this segment's data) ---
     parts = [
