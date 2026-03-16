@@ -32,6 +32,74 @@ def _quote_report(text: str, max_len: int = 200) -> str:
     return f'"{s}"'
 
 
+# --- AI-based segment level (color): LLM classifies normal / warning / critical ---
+
+def _try_llm_segment_level(segment: Dict[str, Any]) -> Optional[str]:
+    """
+    Ask the LLM to classify segment severity. Returns "normal", "warning", or "critical",
+    or None if API key missing / call fails / response unparseable.
+    """
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    if not api_key or not OpenAI:
+        return None
+    depth_from = segment.get("from") or 0
+    depth_to = segment.get("to") or 0
+    op = segment.get("operationType") or segment.get("eventType") or "N/A"
+    npt = segment.get("nptHours") or 0
+    desc = (segment.get("whyItMatters") or "").strip()
+    desc_short = (desc[:300] + "...") if len(desc) > 300 else desc
+    user = (
+        "Classify this drilling segment's severity for wellbore display. "
+        "Reply with exactly one word: normal, warning, or critical.\n\n"
+        f"Depth: {depth_from}m–{depth_to}m | Operation: {op} | NPT: {npt} hours\n"
+        f"Description: {desc_short or '[none]'}"
+    )
+    model = os.environ.get("SEGMENT_ANALYSIS_MODEL", "gpt-4o-mini")
+    try:
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": user}],
+            max_tokens=10,
+        )
+        content = (resp.choices[0].message.content or "").strip().lower()
+        if "critical" in content:
+            return "critical"
+        if "warning" in content:
+            return "warning"
+        if "normal" in content:
+            return "normal"
+        return None
+    except Exception:
+        return None
+
+
+def _rule_based_segment_level(segment: Dict[str, Any]) -> str:
+    """Rule-based fallback when LLM is not used or fails."""
+    npt = segment.get("nptHours") or 0
+    desc = (segment.get("whyItMatters") or "").upper()
+    if npt >= 2:
+        return "critical"
+    if "NPT" in desc or "NO SUCCESS" in desc or "STUCK" in desc or "STUCK PIPE" in desc:
+        return "critical"
+    if npt > 0:
+        return "warning"
+    if "LOST CIRCULATION" in desc or "KICK" in desc or "WELL CONTROL" in desc:
+        return "warning"
+    return "normal"
+
+
+def classify_segment_level(segment: Dict[str, Any]) -> str:
+    """
+    Classify segment severity (normal / warning / critical) for wellbore color.
+    Uses LLM when OPENAI_API_KEY is set; otherwise rule-based logic.
+    """
+    level = _try_llm_segment_level(segment)
+    if level is not None:
+        return level
+    return _rule_based_segment_level(segment)
+
+
 # --- LLM-based analysis (optional, when OPENAI_API_KEY is set) ---
 
 def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple:

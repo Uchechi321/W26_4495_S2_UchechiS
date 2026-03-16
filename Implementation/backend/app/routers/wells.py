@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
-from ..services.ai_engine import analyze_segment, get_maintenance_analysis
+from ..services.ai_engine import analyze_segment, get_maintenance_analysis, classify_segment_level
 from ..models.well import Well
 from ..models.operation import Operation
 from ..models.daily_report import DailyReport
@@ -104,30 +104,23 @@ def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
         .all()
     )
 
-    # Build "segments" from operations (simple MVP)
+    # Build "segments" from operations; level (color) is AI-determined when LLM is available
     segments = []
     ops = []
     for o, report_date in ops_with_dates:
         ops.append(o)
-        level = "normal"
-        if o.npt_hours and o.npt_hours >= 2:
-            level = "critical"
-        elif o.npt_hours and o.npt_hours > 0:
-            level = "warning"
-
-        segments.append(
-            {
-                "from": o.depth_from,
-                "to": o.depth_to,
-                "level": level,
-                "eventType": o.operation_type,
-                "operationType": o.operation_type,
-                "whyItMatters": o.description,
-                "nptHours": o.npt_hours,
-                "recordedAt": report_date.isoformat() if report_date else None,
-                "report_id": o.report_id,
-            }
-        )
+        seg = {
+            "from": o.depth_from,
+            "to": o.depth_to,
+            "eventType": o.operation_type,
+            "operationType": o.operation_type,
+            "whyItMatters": o.description,
+            "nptHours": o.npt_hours,
+            "recordedAt": report_date.isoformat() if report_date else None,
+            "report_id": o.report_id,
+        }
+        seg["level"] = classify_segment_level(seg)
+        segments.append(seg)
 
     # Equipment per report (for segment modal "Equipment Involved")
     report_ids = list({o.report_id for o in ops})
