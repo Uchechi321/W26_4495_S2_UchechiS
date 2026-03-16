@@ -118,7 +118,14 @@ export default function Dashboard() {
             subtitle={`${k.criticalEvents} critical events`}
             badge="Events"
             tone="warning"
-            onClick={() => setKpiModal({ title: "Event Count", text: "Event Count is the number of distinct operations or events recorded in the reports for this well." })}
+            onClick={() => setKpiModal({
+              title: "Event Count",
+              text: "Event Count is the number of distinct operations or events recorded in the reports for this well.",
+              chartType: "eventCount",
+              wellName: dash.well?.well_name || wellId,
+              segments: dash.segments || [],
+              kpis: dash.kpis || {},
+            })}
           />
 
           <KpiCard
