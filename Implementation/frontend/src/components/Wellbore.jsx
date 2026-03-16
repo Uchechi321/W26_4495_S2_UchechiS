@@ -89,8 +89,8 @@ export default function Wellbore({ depthMax = 0, segments = [], onSelectSegment 
                 <button
                   key={idx}
                   type="button"
-                  className={`segment ${autoLevel}`}
-                  title={`${autoLevel.toUpperCase()} (${seg.from}m–${seg.to}m)`}
+                  className={`segment ${finalLevel}`}
+                  title={`${finalLevel.toUpperCase()} (${seg.from}m–${seg.to}m)`}
                   style={{ height: `${Math.max(heightPercent, 1)}%` }} // ensure visible
                   onClick={() => onSelectSegment?.(seg)}
                 />

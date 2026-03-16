@@ -32,6 +32,39 @@ def _quote_report(text: str, max_len: int = 200) -> str:
     return f'"{s}"'
 
 
+def _explicit_reasons_for_level(segment: Dict[str, Any]) -> List[str]:
+    """
+    Return short, explicit reasons why the segment has its current level.
+    No description quote — only the reason (e.g. high NPT, stuck pipe indication).
+    """
+    level = (segment.get("level") or "normal").lower()
+    npt = segment.get("nptHours") or 0
+    desc = (segment.get("whyItMatters") or "").lower()
+    reasons: List[str] = []
+    if level == "critical":
+        if npt >= 2:
+            reasons.append(f"high non-productive time ({npt} hours; ≥2 hours triggers critical classification)")
+        if "stuck" in desc or "stuck pipe" in desc:
+            reasons.append("stuck pipe or stuck-pipe indication reported")
+        if "lost circulation" in desc or ("loss" in desc and "circulation" in desc):
+            reasons.append("lost circulation or mud loss reported")
+        if "kick" in desc or "well control" in desc:
+            reasons.append("kick or well control event reported")
+        if not reasons:
+            reasons.append("AI or rule-based severity rules classified this segment as critical")
+    elif level == "warning":
+        if npt and 0 < npt < 2:
+            reasons.append(f"non-productive time recorded ({npt} hours)")
+        if "lost circulation" in desc or "circulation" in desc or "loss" in desc:
+            if "stuck" not in desc and "kick" not in desc:
+                reasons.append("circulation or loss indication in the report")
+        if "ream" in desc or "reaming" in (segment.get("operationType") or "").lower():
+            reasons.append("reaming operation in this interval (elevated mechanical risk)")
+        if not reasons:
+            reasons.append("elevated risk indicators led to warning classification")
+    return reasons
+
+
 # --- AI-based segment level (color): LLM classifies normal / warning / critical ---
 
 def _try_llm_segment_level(segment: Dict[str, Any]) -> Optional[str]:
@@ -70,6 +103,52 @@ def _try_llm_segment_level(segment: Dict[str, Any]) -> Optional[str]:
         if "normal" in content:
             return "normal"
         return None
+    except Exception:
+        return None
+
+
+def _get_llm_flag_explanation(segment: Dict[str, Any]) -> Optional[str]:
+    """
+    Ask the LLM to read the segment description and write a short explanation:
+    (1) what happened in this segment based on the description, (2) why it was flagged as critical/warning.
+    No verbatim quote, no fixed template — the explanation must be derived from the actual description.
+    Returns None if API key missing, level is normal, or call fails.
+    """
+    level = (segment.get("level") or "normal").lower()
+    if level not in ("critical", "warning"):
+        return None
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    if not api_key or not OpenAI:
+        return None
+    desc = (segment.get("whyItMatters") or "").strip()
+    if not desc:
+        return None
+    depth_from = segment.get("from") or 0
+    depth_to = segment.get("to") or 0
+    op = segment.get("operationType") or segment.get("eventType") or "N/A"
+    npt = segment.get("nptHours") or 0
+    user = (
+        "You are a drilling analyst. A wellbore segment has been classified as "
+        f"**{level}** (shown in red/orange on the wellbore).\n\n"
+        "Segment context:\n"
+        f"- Depth: {depth_from}m–{depth_to}m | Operation: {op} | NPT: {npt} hours\n\n"
+        "Description from the report (what actually happened):\n"
+        f"{desc}\n\n"
+        "Write 2–4 short sentences that:\n"
+        "1. Summarize what happened in this segment based on the description above (use plain language; do not copy the description verbatim).\n"
+        "2. State why this led to a critical (or warning) flag — e.g. failed operation, NPT, equipment disconnection, no success, stuck pipe, etc.\n"
+        "Do not use a fixed template. Your answer must be specific to what the description says. Output only the explanation, no labels or bullet points."
+    )
+    model = os.environ.get("SEGMENT_ANALYSIS_MODEL", "gpt-4o-mini")
+    try:
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": user}],
+            max_tokens=300,
+        )
+        content = (resp.choices[0].message.content or "").strip()
+        return content if len(content) > 20 else None
     except Exception:
         return None
 
@@ -141,7 +220,8 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
         "Return a single JSON object with exactly these keys:\n"
         '"title", "depthRange", '
         '"titleSource" (ONE short sentence: how you determined the title; do not repeat the description), '
-        '"flaggedReason", "contributingFactors", "similarEventsInHistory", '
+        '"flaggedReason" (MUST be specific to this segment: in 2–4 sentences, (1) summarize what happened in this segment based on the description — plain language, do not quote verbatim — and (2) state why that led to a critical/warning flag or why it is normal; no fixed template), '
+        '"contributingFactors", "similarEventsInHistory", '
         '"technicalFactors", "preventionMeasures", "methodology". '
         "Vary your answers by segment: reference this segment's depth, operation, and NPT so analyses are not generic."
     )
@@ -289,23 +369,34 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
         # Fully normal segment: differentiate titles using operation + depth
         title = f"Segment Analysis — {op_type_raw or 'Operation'} at {depth_range}"
         title_source = (
-            "The title combines the operation type and depth range for this segment "
-            "because no specific critical or warning keywords were found in the description."
+            "The title combines the operation type and depth range for this segment. "
+            "It is classified as normal, so no critical or warning event title was applied."
         )
 
-    # --- Why was this flagged? (specific to this segment's data) ---
-    parts = [
-        f"This segment covers {depth_from}m–{depth_to}m with operation '{op_type_raw or 'N/A'}'"
-    ]
-    if npt is not None and npt > 0:
-        parts.append(f" and {npt} hours NPT")
-    parts.append(". ")
-    if desc_raw:
-        parts.append(f"The report states: {_quote_report(desc_raw)}. ")
-    parts.append(
-        "Our rules flag it based on NPT thresholds and description keywords; the contributing factors below spell out which ones applied."
-    )
-    flagged_reason = "".join(parts)
+    # --- Why was this flagged? Prefer LLM explanation that reads the description and explains what happened ---
+    llm_flag_explanation = _get_llm_flag_explanation(segment) if level in ("critical", "warning") else None
+    if level in ("critical", "warning"):
+        if llm_flag_explanation:
+            flagged_reason = llm_flag_explanation
+        else:
+            reasons = _explicit_reasons_for_level(segment)
+            if reasons:
+                flagged_reason = (
+                    f"This segment is classified as {level} because "
+                    + "; ".join(reasons)
+                    + ". The contributing factors below add detail where relevant."
+                )
+            else:
+                flagged_reason = (
+                    f"This segment is classified as {level} on the wellbore. "
+                    "The contributing factors below spell out what drove that classification."
+                )
+    else:
+        # Normal: not flagged
+        flagged_reason = (
+            "This segment is classified as normal and was not flagged; "
+            "the wellbore shows it in the normal range."
+        )
 
     # --- Contributing factors (each cites report data) ---
     contributing_factors: List[Dict[str, Any]] = []
@@ -327,35 +418,43 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
             "type": "warning",
             "heading": "Occurred During Reaming Operation",
             "text": (
-                f"The report indicates this event occurred during reaming (operation type: '{op_type_raw or 'N/A'}'; "
-                f"description: {_quote_report(desc_raw)}). Reaming increases mechanical stress on the drill string. "
-                f"Combined with the formation at {depth_from}m–{depth_to}m, the risk of differential sticking "
-                "or tool failure was elevated. This is why we flag reaming-related events in this interval."
+                f"This segment is flagged in part because it occurred during reaming. "
+                "Reaming increases mechanical stress on the drill string; combined with the formation at "
+                f"{depth_from}m–{depth_to}m, the risk of differential sticking or tool failure is elevated."
             ),
         })
 
     if "stuck" in desc or "stuck pipe" in desc:
         contributing_factors.append({
             "type": "danger",
-            "heading": "Stuck Pipe Indication from Report",
+            "heading": "Stuck Pipe Indication",
             "text": (
-                f"The report description for this segment states: {_quote_report(desc_raw)}. "
-                "The presence of 'stuck' or 'stuck pipe' leads to a critical classification. "
-                f"Such events in the interval {depth_from}m–{depth_to}m require root cause analysis and "
+                "The report indicates stuck pipe or a stuck-pipe risk in this segment, which triggers a critical classification. "
+                f"Events of this type in the interval {depth_from}m–{depth_to}m require root cause analysis and "
                 "prevention measures for similar depths."
             ),
         })
 
     if level == "critical" and not contributing_factors:
-        contributing_factors.append({
-            "type": "danger",
-            "heading": "Flagged as Critical (from report severity)",
-            "text": (
-                f"The segment is marked critical in the data. Report operation: '{op_type_raw or 'N/A'}'; "
-                f"NPT: {npt} hours; description: {_quote_report(desc_raw)}. "
-                "Classification is based on NPT thresholds and the recorded operation/description."
-            ),
-        })
+        # Use same description-based explanation as "Why Was This Flagged?" when we have it
+        if llm_flag_explanation:
+            contributing_factors.append({
+                "type": "danger",
+                "heading": "Why It Was Flagged Critical",
+                "text": llm_flag_explanation,
+            })
+        else:
+            crit_reasons = _explicit_reasons_for_level(segment)
+            reason_text = "; ".join(crit_reasons) if crit_reasons else "severity rules applied to this segment"
+            contributing_factors.append({
+                "type": "danger",
+                "heading": "Why It Was Flagged Critical",
+                "text": (
+                    f"This segment was classified as critical because {reason_text}. "
+                    "No other specific factor (e.g. stuck pipe, lost circulation) was identified; "
+                    "review depth, operation type, and NPT for context."
+                ),
+            })
 
     # --- Similar events (specific to this depth and operation) ---
     similar_events = (
@@ -392,8 +491,8 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
     # --- Methodology (short, no repetition of segment data) ---
     methodology = (
         "This analysis uses the segment's depth interval, operation type, NPT hours, and description from the report. "
-        "The title comes from keyword matching (e.g. stuck pipe, lost circulation) or severity level. "
-        "Contributing factors and recommendations are derived from those same fields."
+        "Segment severity (wellbore color) is set by AI when available, otherwise by rule-based logic; "
+        "the title and flagged explanation match that same level. Contributing factors and recommendations are derived from the report fields."
     )
 
     return {
