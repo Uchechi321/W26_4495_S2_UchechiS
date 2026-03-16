@@ -102,9 +102,12 @@ export default function Dashboard() {
             tone="danger"
             onClick={() => setKpiModal({
               title: "Non-Productive Time",
-              text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed. The chart below shows total NPT hours per report date.",
+              text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed.",
               chartData: nptByReportDate,
               chartType: "nptByDate",
+              wellName: dash.well?.well_name || wellId,
+              segments: dash.segments || [],
+              kpis: dash.kpis || {},
             })}
           />
 
@@ -155,6 +158,9 @@ export default function Dashboard() {
         onClose={() => setKpiModal(null)}
         chartData={kpiModal?.chartData}
         chartType={kpiModal?.chartType}
+        wellName={kpiModal?.wellName}
+        segments={kpiModal?.segments}
+        kpis={kpiModal?.kpis}
       />
     </div>
   );
