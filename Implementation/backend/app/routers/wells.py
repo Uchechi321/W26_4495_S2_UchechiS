@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -181,6 +183,11 @@ class SegmentAnalysisRequest(BaseModel):
 
 class TextAnalysisRequest(BaseModel):
     text: str
+    depth_from: Optional[float] = None
+    depth_to: Optional[float] = None
+    operation_type: Optional[str] = None
+    npt_hours: Optional[float] = None
+    level: Optional[str] = None
 
 
 @router.post("/{well_id}/segment-analysis")
@@ -204,16 +211,16 @@ def analyze_segment_text(body: TextAnalysisRequest):
     - Recommended prevention measures     -> preventionMeasures
     - Analysis methodology                -> methodology
 
-    This reuses the existing analyze_segment logic by constructing a minimal
-    segment object where 'whyItMatters' is the provided text.
+    Optional depth_from, depth_to, operation_type, npt_hours, level allow the
+    response title and depth range to show real segment context instead of 0m - 0m.
     """
     segment = {
-        "from": None,
-        "to": None,
-        "operationType": None,
-        "eventType": None,
-        "nptHours": None,
-        "level": "normal",
+        "from": body.depth_from,
+        "to": body.depth_to,
+        "operationType": body.operation_type,
+        "eventType": body.operation_type,
+        "nptHours": body.npt_hours,
+        "level": body.level or "normal",
         "whyItMatters": body.text,
         "recordedAt": None,
     }
