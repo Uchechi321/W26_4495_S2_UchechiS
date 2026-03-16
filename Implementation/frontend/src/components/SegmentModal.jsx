@@ -17,14 +17,22 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
   }, [open, segment]);
 
   async function handleViewDetailedExplanation() {
-    if (!segment || !wellId) return;
+    if (!segment) return;
     setLoadingExplanation(true);
     setExplanationError("");
     try {
-      const res = await fetch(`/api/wells/${wellId}/segment-analysis`, {
+      // Use text-only analysis endpoint; send description + segment context so title/depth show correctly
+      const res = await fetch(`/api/wells/segment-text-analysis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segment, equipment }),
+        body: JSON.stringify({
+          text: segment.whyItMatters ?? "",
+          depth_from: segment.from != null ? Number(segment.from) : null,
+          depth_to: segment.to != null ? Number(segment.to) : null,
+          operation_type: segment.operationType ?? segment.eventType ?? null,
+          npt_hours: segment.nptHours != null ? Number(segment.nptHours) : null,
+          level: segment.level ?? null,
+        }),
       });
       if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
       const data = await res.json();
