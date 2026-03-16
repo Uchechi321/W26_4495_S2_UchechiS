@@ -118,6 +118,11 @@ export default function KpiModal({
       }
     : null;
 
+  function downloadNptReport() {
+    // Match SummaryReports behaviour: open browser print dialog so user can save as PDF.
+    window.print();
+  }
+
   const pieData = [
     { name: "Non-Productive Time", value: totalNpt, color: "#dc2626" },
     { name: "Productive Time", value: productiveTime, color: "#16a34a" },
@@ -136,7 +141,7 @@ export default function KpiModal({
             </button>
             <h1 className="kpiModalNptTitle">NPT Analytics — {wellName || "Well"}</h1>
             <p className="kpiModalNptSubtitle">Non-Productive Time Analysis</p>
-            <button type="button" className="kpiModalNptDownload" aria-label="Download NPT Report">
+            <button type="button" className="kpiModalNptDownload" onClick={downloadNptReport} aria-label="Download NPT Report">
               <Download size={18} />
               <span>Download NPT Report</span>
             </button>
