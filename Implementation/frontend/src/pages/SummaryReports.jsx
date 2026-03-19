@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import "../styles/SummaryReports.css";
+import FleetWideReports from "./FleetWideReports";
 
 const PIE_COLORS = ["#2b7cff", "#ff9500", "#28a745", "#6f42c1", "#e83e8c", "#20c997"];
 const RISK_COLORS = { Low: "#28a745", Medium: "#ff9500", High: "#dc3545" };
@@ -46,6 +47,8 @@ function PieChart({ data, size = 160, title }) {
 }
 
 export default function SummaryReports() {
+  return <FleetWideReports />;
+  /*
   const [wells, setWells] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -163,4 +166,5 @@ export default function SummaryReports() {
       </div>
     </div>
   );
+  */
 }
