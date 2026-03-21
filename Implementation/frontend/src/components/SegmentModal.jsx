@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
 import "../styles/SegmentModal.css";
 
 export default function SegmentModal({ open, segment, wellId, equipment = [], onClose }) {
@@ -89,7 +90,7 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
             <div className="modalGrid">
               <div className="detailCard">
                 <div className="detailLabel">Event Type</div>
-                <div className="detailValue">{segment.eventType ?? "N/A"}</div>
+                <div className="detailValue">{getSegmentEventTypeLabel(segment)}</div>
               </div>
 
               <div className="detailCard danger">
