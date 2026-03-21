@@ -325,11 +325,29 @@
   flex-wrap: wrap;
 }
 
+/* Full labels + % under NPT pie (slice labels disabled to avoid clipping) */
+.kpiModalNptLegend--pie {
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 0 8px;
+}
+
 .kpiModalNptLegendItem {
   font-size: 13px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.35;
+  max-width: 100%;
+}
+
+/* Recharts pie: avoid clipping SVG labels when used elsewhere */
+.kpiModalNptPieWrap .recharts-wrapper {
+  overflow: visible;
 }
 
 .kpiModalNptLegendItem--npt::before {
@@ -348,6 +366,49 @@
   height: 12px;
   background: #16a34a;
   border-radius: 2px;
+}
+
+/* Event severity donut legend — dots match slice colors */
+.kpiModalNptLegendItem--severity-critical::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #dc2626;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.kpiModalNptLegendItem--severity-warning::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #f59e0b;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.kpiModalNptLegendItem--severity-normal::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #16a34a;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.kpiModalNptLegend--severity .kpiModalNptLegendItem--severity-critical {
+  color: #991b1b;
+}
+
+.kpiModalNptLegend--severity .kpiModalNptLegendItem--severity-warning {
+  color: #b45309;
+}
+
+.kpiModalNptLegend--severity .kpiModalNptLegendItem--severity-normal {
+  color: #166534;
 }
 
 .kpiModalNptSummaryTable {
@@ -383,6 +444,24 @@
   font-weight: 700;
 }
 
+.kpiModalNptSummaryRow--severity-warning {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.kpiModalNptSummaryRow--severity-warning span:last-child {
+  font-weight: 700;
+}
+
+.kpiModalNptSummaryRow--severity-normal {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.kpiModalNptSummaryRow--severity-normal span:last-child {
+  font-weight: 700;
+}
+
 .kpiModalNptTableWrap {
   overflow-x: auto;
 }
@@ -404,6 +483,23 @@
   font-weight: 700;
   color: #374151;
   background: #f9fafb;
+}
+
+.kpiModalNptTable tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.kpiModalNptTable tbody tr:nth-child(even) td {
+  background: transparent;
+}
+
+.kpiModalNptTableCell--badge {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.kpiModalNptTableDuration {
+  font-weight: 700;
 }
 
 .kpiModalNptTableNpt {

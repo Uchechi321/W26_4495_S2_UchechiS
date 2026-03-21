@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 import { Download } from "lucide-react";
 import "../styles/FleetWideReports.css";
+import "../styles/SeverityBadge.css";
+import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
+import { typePillLabel, severityPillLabel, severityBadgeModifier } from "../utils/severityDisplay";
 
 function formatShortDate(dateStr) {
   if (!dateStr) return "";
@@ -46,6 +49,14 @@ function downloadBlob(filename, blob) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/** Map well summary status to pill style: red / amber / green */
+function fleetStatusToModifier(status) {
+  const s = String(status || "").toLowerCase();
+  if (s.includes("needs")) return "critical";
+  if (s.includes("excellent")) return "normal";
+  return "warning";
 }
 
 function toCSV(rows) {
@@ -271,6 +282,28 @@ export default function FleetWideReports() {
       })
       .sort((a, b) => a.well_id.localeCompare(b.well_id));
 
+    let fleetDetailedEventId = 0;
+    const fleetDetailedEvents = [];
+    for (const x of wellDashboards) {
+      const dash = x.dashboard;
+      if (!dash) continue;
+      const well_id = dash.well?.well_id || x.wellSummary?.well_id || "";
+      for (const s of dash.segments || []) {
+        const lvl = (s.level || "").toLowerCase();
+        if (lvl !== "critical" && lvl !== "warning") continue;
+        fleetDetailedEventId += 1;
+        fleetDetailedEvents.push({
+          id: fleetDetailedEventId,
+          well_id,
+          date: formatShortDate((s.recordedAt || "").slice(0, 10)),
+          depthRange: `${s.from ?? 0}-${s.to ?? 0}m`,
+          level: lvl,
+          event: getSegmentEventTypeLabel(s),
+          duration: s.nptHours != null ? Number(s.nptHours).toFixed(1) : "-",
+        });
+      }
+    }
+
     return {
       activeWellsCount,
       totalNpt,
@@ -284,6 +317,7 @@ export default function FleetWideReports() {
       radarAxisData,
       top3,
       tableRows,
+      fleetDetailedEvents,
     };
   }, [wellDashboards]);
 
@@ -481,6 +515,49 @@ export default function FleetWideReports() {
           </div>
         </div>
 
+        {computed.fleetDetailedEvents.length > 0 && (
+          <div className="fleetSection">
+            <h2 className="fleetSectionTitle">Detailed Event Breakdown (All Wells)</h2>
+            <div className="fleetTableWrap">
+              <table className="fleetTable fleetTable--eventBreakdown">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Well ID</th>
+                    <th>Date</th>
+                    <th>Depth Range</th>
+                    <th>Type</th>
+                    <th>Event</th>
+                    <th>Duration (hrs)</th>
+                    <th>Severity</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {computed.fleetDetailedEvents.map((row) => {
+                    const mod = severityBadgeModifier(row.level);
+                    return (
+                      <tr key={`${row.well_id}-${row.id}`}>
+                        <td>{row.id}</td>
+                        <td>{row.well_id}</td>
+                        <td>{row.date}</td>
+                        <td>{row.depthRange}</td>
+                        <td className="fleetTableCell--badge">
+                          <span className={`sevBadge sevBadge--${mod}`}>{typePillLabel(row.level)}</span>
+                        </td>
+                        <td>{row.event}</td>
+                        <td className="fleetTableCell--duration">{row.duration}</td>
+                        <td className="fleetTableCell--badge">
+                          <span className={`sevBadge sevBadge--${mod}`}>{severityPillLabel(row.level)}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         <div className="fleetSection">
           <div className="fleetTableHeader">
             <h2 className="fleetSectionTitle" style={{ margin: 0 }}>Detailed Well Summary</h2>
@@ -511,10 +588,8 @@ export default function FleetWideReports() {
                     <td>{r.critical}</td>
                     <td>{r.productivity}</td>
                     <td>{r.nptRate}</td>
-                    <td>
-                      <span className={`fleetStatus fleetStatus--${r.status.toLowerCase().replace(/\s+/g, "-")}`}>
-                        {r.status}
-                      </span>
+                    <td className="fleetTableCell--badge">
+                      <span className={`sevBadge sevBadge--${fleetStatusToModifier(r.status)}`}>{r.status}</span>
                     </td>
                   </tr>
                 ))}

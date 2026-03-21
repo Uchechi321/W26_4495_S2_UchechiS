@@ -1,0 +1,27 @@
+/* Pill badges: pale background + darker text (tables & reports) */
+.sevBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.sevBadge--critical {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sevBadge--warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.sevBadge--normal {
+  background: #dcfce7;
+  color: #166534;
+}

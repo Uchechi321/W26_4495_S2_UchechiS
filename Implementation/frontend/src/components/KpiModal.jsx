@@ -16,17 +16,9 @@ import {
 } from "recharts";
 import "../styles/SegmentModal.css";
 import "../styles/KpiModal.css";
-
-// Map operation type / description to display event type for NPT breakdown
-function eventTypeLabel(seg) {
-  const op = (seg.operationType || seg.eventType || "").toLowerCase();
-  const desc = (seg.whyItMatters || "").toLowerCase();
-  if (desc.includes("stuck") || op.includes("stuck")) return "Stuck Pipe";
-  if (desc.includes("ream") || op.includes("ream")) return "Reaming Required";
-  if (desc.includes("equipment") || op.includes("equipment") || op.includes("check")) return "Equipment Check";
-  if (op || seg.operationType) return (seg.operationType || seg.eventType || "Other").trim() || "Other";
-  return "Other";
-}
+import "../styles/SeverityBadge.css";
+import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
+import { typePillLabel, severityPillLabel, severityBadgeModifier } from "../utils/severityDisplay";
 
 export default function KpiModal({
   open,
@@ -57,7 +49,7 @@ export default function KpiModal({
   segments.forEach((s) => {
     const hrs = Number(s.nptHours) || 0;
     if (hrs <= 0) return;
-    const label = eventTypeLabel(s);
+    const label = getSegmentEventTypeLabel(s);
     if (!nptByEventTypeMap[label]) nptByEventTypeMap[label] = { hours: 0, count: 0 };
     nptByEventTypeMap[label].hours += hrs;
     nptByEventTypeMap[label].count += 1;
@@ -130,6 +122,37 @@ export default function KpiModal({
   ].filter((d) => d.value > 0);
   if (pieData.length === 0) pieData.push({ name: "No data", value: 1, color: "#e5e7eb" });
 
+  /** Outside donut labels (full wording + %); avoids default slice label clipping */
+  const renderNptDonutLabel = ({
+    cx,
+    cy,
+    midAngle,
+    outerRadius,
+    name,
+  }) => {
+    if (name === "No data" || cx == null || cy == null) return null;
+    const RADIAN = Math.PI / 180;
+    const r = (outerRadius ?? 100) + 32;
+    const x = cx + r * Math.cos(-midAngle * RADIAN);
+    const y = cy + r * Math.sin(-midAngle * RADIAN);
+    const cos = Math.cos(-midAngle * RADIAN);
+    const textAnchor = Math.abs(cos) < 0.15 ? "middle" : cos > 0 ? "start" : "end";
+    const pct = name === "Non-Productive Time" ? displayNptPercent : displayProductivePercent;
+    const fill = name === "Non-Productive Time" ? "#b91c1c" : "#166534";
+    const line1 = name === "Non-Productive Time" ? "Non-Productive" : "Productive";
+    const line2 = `Time (${pct}%)`;
+    return (
+      <text x={x} y={y} textAnchor={textAnchor} fill={fill} fontSize={11} fontWeight={700}>
+        <tspan x={x} dy="-0.35em">
+          {line1}
+        </tspan>
+        <tspan x={x} dy="1.25em">
+          {line2}
+        </tspan>
+      </text>
+    );
+  };
+
   // --- Event analytics derived data (for Event Count card) ---
   const totalEvents = segments.length;
   const criticalEvents = segments.filter((s) => (s.level || "").toLowerCase() === "critical").length;
@@ -140,11 +163,34 @@ export default function KpiModal({
   const severityPieData = [
     { name: "Critical", value: criticalEvents, color: "#dc2626" },
     { name: "Warning", value: warningEvents, color: "#f59e0b" },
-    { name: "Normal", value: normalEvents, color: "#4b5563" },
+    { name: "Normal", value: normalEvents, color: "#16a34a" },
   ].filter((d) => d.value > 0);
   if (severityPieData.length === 0) {
     severityPieData.push({ name: "No events", value: 1, color: "#e5e7eb" });
   }
+
+  const renderSeverityDonutLabel = ({ cx, cy, midAngle, outerRadius, name, value }) => {
+    if (name === "No events" || cx == null || cy == null || !totalEvents) return null;
+    const pct = ((value / totalEvents) * 100).toFixed(1);
+    const RADIAN = Math.PI / 180;
+    const r = (outerRadius ?? 100) + 32;
+    const x = cx + r * Math.cos(-midAngle * RADIAN);
+    const y = cy + r * Math.sin(-midAngle * RADIAN);
+    const cos = Math.cos(-midAngle * RADIAN);
+    const textAnchor = Math.abs(cos) < 0.15 ? "middle" : cos > 0 ? "start" : "end";
+    const fill =
+      name === "Critical" ? "#b91c1c" : name === "Warning" ? "#d97706" : "#15803d";
+    return (
+      <text x={x} y={y} textAnchor={textAnchor} fill={fill} fontSize={11} fontWeight={700}>
+        <tspan x={x} dy="-0.35em">
+          {name}
+        </tspan>
+        <tspan x={x} dy="1.25em">
+          {pct}%
+        </tspan>
+      </text>
+    );
+  };
 
   // Daily events by recordedAt date
   const eventsByDateMap = {};
@@ -210,7 +256,7 @@ export default function KpiModal({
       date: formatShortDate((s.recordedAt || "").slice(0, 10)),
       depthRange: `${s.from ?? 0}-${s.to ?? 0}m`,
       type: (s.level || "normal").toLowerCase(),
-      event: eventTypeLabel(s),
+      event: getSegmentEventTypeLabel(s),
       duration: s.nptHours != null ? Number(s.nptHours).toFixed(1) : "-",
       severity: (s.level || "normal").toLowerCase(),
     }));
@@ -261,8 +307,8 @@ export default function KpiModal({
           <div className="kpiModalNptSection">
             <h3 className="kpiModalNptSectionTitle">NPT vs Productive Time</h3>
             <div className="kpiModalNptPieWrap">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart margin={{ top: 28, right: 36, bottom: 28, left: 36 }}>
                   <Pie
                     data={pieData}
                     cx="50%"
@@ -272,7 +318,10 @@ export default function KpiModal({
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, value }) => (value > 0 ? `${name}: ${name === "Non-Productive Time" ? displayNptPercent : displayProductivePercent}%` : null)}
+                    label={renderNptDonutLabel}
+                    labelLine={false}
+                    animationBegin={0}
+                    animationDuration={750}
                   >
                     {pieData.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />
@@ -281,9 +330,13 @@ export default function KpiModal({
                   <Tooltip formatter={(v) => `${Number(v).toFixed(1)} hrs`} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="kpiModalNptLegend">
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--npt">Non-Productive Time</span>
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--prod">Productive Time</span>
+              <div className="kpiModalNptLegend kpiModalNptLegend--pie">
+                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--npt">
+                  Non-Productive Time ({displayNptPercent}%)
+                </span>
+                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--prod">
+                  Productive Time ({displayProductivePercent}%)
+                </span>
               </div>
               <div className="kpiModalNptSummaryTable">
                 <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--npt">
@@ -305,7 +358,7 @@ export default function KpiModal({
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={nptByEventType} margin={{ top: 12, right: 16, bottom: 24, left: 8 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-28} textAnchor="end" height={70} interval={0} />
                   <YAxis label={{ value: "Hours", angle: -90, position: "insideLeft" }} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(v) => [`${v} hrs`, "NPT"]} />
                   <Bar dataKey="hours" fill="#dc2626" radius={[4, 4, 0, 0]} name="NPT (hrs)" />
@@ -453,8 +506,8 @@ export default function KpiModal({
           <div className="kpiModalNptSection">
             <h3 className="kpiModalNptSectionTitle">Event Severity Distribution</h3>
             <div className="kpiModalNptPieWrap">
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart margin={{ top: 28, right: 44, bottom: 28, left: 44 }}>
                   <Pie
                     data={severityPieData}
                     cx="50%"
@@ -464,11 +517,10 @@ export default function KpiModal({
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="name"
-                    label={({ name, value }) =>
-                      totalEvents > 0
-                        ? `${name}: ${((value / totalEvents) * 100).toFixed(1)}%`
-                        : null
-                    }
+                    label={renderSeverityDonutLabel}
+                    labelLine={false}
+                    animationBegin={0}
+                    animationDuration={750}
                   >
                     {severityPieData.map((entry, i) => (
                       <Cell key={i} fill={entry.color} />
@@ -477,9 +529,22 @@ export default function KpiModal({
                   <Tooltip formatter={(v) => `${Number(v).toFixed(0)} events`} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="kpiModalNptLegend">
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--npt">Critical</span>
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--prod">Warning</span>
+              <div className="kpiModalNptLegend kpiModalNptLegend--pie kpiModalNptLegend--severity">
+                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--severity-critical">
+                  Critical (
+                  {totalEvents > 0 ? ((criticalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
+                  %)
+                </span>
+                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--severity-warning">
+                  Warning (
+                  {totalEvents > 0 ? ((warningEvents / totalEvents) * 100).toFixed(1) : "0.0"}
+                  %)
+                </span>
+                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--severity-normal">
+                  Normal (
+                  {totalEvents > 0 ? ((normalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
+                  %)
+                </span>
               </div>
               <div className="kpiModalNptSummaryTable">
                 <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--npt">
@@ -490,11 +555,19 @@ export default function KpiModal({
                     %)
                   </span>
                 </div>
-                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--prod">
+                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--severity-warning">
                   <span>Warning</span>
                   <span>
                     {warningEvents} events (
                     {totalEvents > 0 ? ((warningEvents / totalEvents) * 100).toFixed(1) : "0.0"}
+                    %)
+                  </span>
+                </div>
+                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--severity-normal">
+                  <span>Normal</span>
+                  <span>
+                    {normalEvents} events (
+                    {totalEvents > 0 ? ((normalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
                     %)
                   </span>
                 </div>
@@ -598,10 +671,14 @@ export default function KpiModal({
                 <XAxis type="number" />
                 <YAxis dataKey="label" type="category" tick={{ fontSize: 12 }} />
                 <Tooltip />
-                <Legend />
+                <Legend
+                  formatter={(value, entry) => (
+                    <span style={{ color: entry.color, fontWeight: 600 }}>{value}</span>
+                  )}
+                />
                 <Bar dataKey="critical" stackId="a" fill="#dc2626" name="Critical" />
                 <Bar dataKey="warning" stackId="a" fill="#f59e0b" name="Warning" />
-                <Bar dataKey="normal" stackId="a" fill="#4b5563" name="Normal" />
+                <Bar dataKey="normal" stackId="a" fill="#16a34a" name="Normal" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -624,17 +701,24 @@ export default function KpiModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {detailedEventsRows.map((row) => (
-                      <tr key={row.id}>
-                        <td>{row.id}</td>
-                        <td>{row.date}</td>
-                        <td>{row.depthRange}</td>
-                        <td>{row.type}</td>
-                        <td>{row.event}</td>
-                        <td>{row.duration}</td>
-                        <td>{row.severity}</td>
-                      </tr>
-                    ))}
+                    {detailedEventsRows.map((row) => {
+                      const mod = severityBadgeModifier(row.type);
+                      return (
+                        <tr key={row.id}>
+                          <td>{row.id}</td>
+                          <td>{row.date}</td>
+                          <td>{row.depthRange}</td>
+                          <td className="kpiModalNptTableCell--badge">
+                            <span className={`sevBadge sevBadge--${mod}`}>{typePillLabel(row.type)}</span>
+                          </td>
+                          <td>{row.event}</td>
+                          <td className="kpiModalNptTableDuration">{row.duration}</td>
+                          <td className="kpiModalNptTableCell--badge">
+                            <span className={`sevBadge sevBadge--${mod}`}>{severityPillLabel(row.severity)}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

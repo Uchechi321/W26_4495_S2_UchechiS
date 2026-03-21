@@ -186,6 +186,19 @@
   color: #374151;
 }
 
+.fleetTable tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.fleetTableCell--badge {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.fleetTableCell--duration {
+  font-weight: 700;
+}
+
 .fleetStatus {
   display: inline-flex;
   padding: 6px 10px;
