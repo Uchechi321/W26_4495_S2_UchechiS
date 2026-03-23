@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/client";
 
 export default function EditReport() {
   const { reportId } = useParams();
@@ -9,7 +10,7 @@ export default function EditReport() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/reports/${reportId}`)
+    apiFetch(`/api/reports/${reportId}`)
       .then((res) => res.json())
       .then((data) => {
         setReport(data.report);
@@ -18,7 +19,7 @@ export default function EditReport() {
   }, [reportId]);
 
   async function handleSave() {
-    const res = await fetch(`/api/reports/${reportId}`, {
+    const res = await apiFetch(`/api/reports/${reportId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

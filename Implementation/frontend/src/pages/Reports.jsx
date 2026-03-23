@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/client";
 import "../styles/Reports.css";
 import UploadBox from "../components/UploadBox";
 
@@ -14,7 +15,7 @@ export default function Reports() {
   async function handleDelete(reportId) {
       if (!window.confirm("Are you sure you want to delete this report?")) return;
 
-      const res = await fetch(`/api/reports/${reportId}`, {
+      const res = await apiFetch(`/api/reports/${reportId}`, {
         method: "DELETE"
       });
 
@@ -31,7 +32,7 @@ export default function Reports() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/wells/${wellId}/reports`);
+        const res = await apiFetch(`/api/wells/${wellId}/reports`);
         if (!res.ok) throw new Error("Failed to load reports");
         const data = await res.json();
         setReports(data);

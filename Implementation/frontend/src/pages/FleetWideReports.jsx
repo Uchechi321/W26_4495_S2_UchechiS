@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 import { Download } from "lucide-react";
+import { apiFetch } from "../api/client";
 import "../styles/FleetWideReports.css";
 import "../styles/SeverityBadge.css";
 import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
@@ -86,7 +87,7 @@ export default function FleetWideReports() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000);
-        const res = await fetch("/api/wells/summary", { signal: controller.signal });
+        const res = await apiFetch("/api/wells/summary", { signal: controller.signal });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`Failed to load fleet summary: ${res.status}`);
         const summary = await res.json();
@@ -98,7 +99,7 @@ export default function FleetWideReports() {
         const dashboards = await Promise.all(
           activeWells.map(async (w) => {
             try {
-              const r = await fetch(`/api/wells/${w.well_id}/dashboard`);
+              const r = await apiFetch(`/api/wells/${w.well_id}/dashboard`);
               if (!r.ok) return { wellSummary: w, dashboard: null };
               const dash = await r.json();
               return { wellSummary: w, dashboard: dash };

@@ -2,9 +2,11 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
+from ..auth_scope import require_user_email, get_well_for_user, normalize_email
 from ..services.ai_engine import analyze_segment, get_maintenance_analysis, classify_segment_level
 from ..models.well import Well
 from ..models.operation import Operation
@@ -22,8 +24,16 @@ def get_db():
 
 
 @router.get("/")
-def list_wells(db: Session = Depends(get_db)):
-    wells = db.query(Well).all()
+def list_wells(
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    me = normalize_email(user_email)
+    wells = (
+        db.query(Well)
+        .filter(func.lower(Well.owner_email) == me)
+        .all()
+    )
     return [
         {
             "well_id": w.well_id,
@@ -40,15 +50,25 @@ def create_well(
     well_name: str = None,
     location: str = None,
     db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
 ):
+    me = normalize_email(user_email)
     existing = db.query(Well).filter(Well.well_id == well_id).first()
     if existing:
+        owner = normalize_email(existing.owner_email)
+        if owner and owner != me:
+            raise HTTPException(status_code=403, detail="This well ID is already used by another account.")
+        if not owner:
+            existing.owner_email = me
+            db.commit()
+            return {"status": "claimed", "well_id": well_id}
         return {"status": "exists", "well_id": well_id}
 
     w = Well(
         well_id=well_id,
         well_name=well_name or well_id,
         location=location,
+        owner_email=me,
     )
     db.add(w)
     db.commit()
@@ -56,9 +76,13 @@ def create_well(
 
 
 @router.get("/summary")
-def get_wells_summary(db: Session = Depends(get_db)):
+def get_wells_summary(
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
     """Return per-well summary (KPIs + report count) for the Summary Reports page."""
-    wells = db.query(Well).all()
+    me = normalize_email(user_email)
+    wells = db.query(Well).filter(func.lower(Well.owner_email) == me).all()
     result = []
     for w in wells:
         report_count = db.query(DailyReport).filter(DailyReport.well_id == w.well_id).count()
@@ -90,10 +114,12 @@ def get_wells_summary(db: Session = Depends(get_db)):
 
 
 @router.get("/{well_id}/dashboard")
-def get_well_dashboard(well_id: str, db: Session = Depends(get_db)):
-    well = db.query(Well).filter(Well.well_id == well_id).first()
-    if not well:
-        raise HTTPException(status_code=404, detail=f"Well '{well_id}' not found")
+def get_well_dashboard(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    well = get_well_for_user(db, well_id, user_email)
 
     # Join with DailyReport to get report_date per operation (for NPT-by-report chart)
     ops_with_dates = (
@@ -184,8 +210,14 @@ class TextAnalysisRequest(BaseModel):
 
 
 @router.post("/{well_id}/segment-analysis")
-def get_segment_analysis(well_id: str, body: SegmentAnalysisRequest):
+def get_segment_analysis(
+    well_id: str,
+    body: SegmentAnalysisRequest,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
     """Return AI-generated explanation for why a segment was flagged (e.g. red critical)."""
+    get_well_for_user(db, well_id, user_email)
     context = {"well_id": well_id, "equipment": body.equipment or []}
     return analyze_segment(body.segment, context)
 
@@ -221,16 +253,18 @@ def analyze_segment_text(body: TextAnalysisRequest):
 
 
 @router.get("/{well_id}/maintenance")
-def get_well_maintenance(well_id: str, db: Session = Depends(get_db)):
+def get_well_maintenance(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
     """
     Predictive maintenance summary for the Maintenance page. Uses equipment from all
     uploaded reports for this well and (optionally) LLM to produce overallRisk,
     highRiskCount, mediumRiskCount, totalEquipment, and equipment cards. Same shape
     as frontend Maintenance.jsx expects.
     """
-    well = db.query(Well).filter(Well.well_id == well_id).first()
-    if not well:
-        raise HTTPException(status_code=404, detail=f"Well '{well_id}' not found")
+    get_well_for_user(db, well_id, user_email)
 
     reports = db.query(DailyReport).filter(DailyReport.well_id == well_id).all()
     report_ids = [r.report_id for r in reports]
@@ -290,9 +324,15 @@ def get_well_maintenance(well_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{well_id}/reports")
-def list_reports_for_well(well_id: str, db: Session = Depends(get_db)):
+def list_reports_for_well(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
     from ..models.daily_report import DailyReport
-    
+
+    get_well_for_user(db, well_id, user_email)
+
     reports = (
         db.query(DailyReport)
         .filter(DailyReport.well_id == well_id)
@@ -313,7 +353,13 @@ def list_reports_for_well(well_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{well_id}/report/{report_id}")
-def get_report_detail(well_id: str, report_id: int, db: Session = Depends(get_db)):
+def get_report_detail(
+    well_id: str,
+    report_id: int,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    get_well_for_user(db, well_id, user_email)
 
     report = (
         db.query(DailyReport)

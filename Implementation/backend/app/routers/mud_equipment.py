@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from ..database import SessionLocal
+from ..auth_scope import require_user_email, assert_report_owned
 from ..models.mud import MudProperties
 from ..models.equipment import Equipment
 
@@ -16,7 +17,13 @@ def get_db():
 
 
 @router.post("/{report_id}/mud")
-def add_or_update_mud(report_id: int, payload: dict, db: Session = Depends(get_db)):
+def add_or_update_mud(
+    report_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    assert_report_owned(db, report_id, user_email)
     mud = db.query(MudProperties).filter_by(report_id=report_id).first()
 
     if mud:
@@ -31,7 +38,13 @@ def add_or_update_mud(report_id: int, payload: dict, db: Session = Depends(get_d
 
 
 @router.post("/{report_id}/equipment")
-def add_equipment(report_id: int, payload: dict, db: Session = Depends(get_db)):
+def add_equipment(
+    report_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    assert_report_owned(db, report_id, user_email)
     equipment = Equipment(report_id=report_id, **payload)
     db.add(equipment)
     db.commit()
@@ -39,7 +52,12 @@ def add_equipment(report_id: int, payload: dict, db: Session = Depends(get_db)):
 
 
 @router.get("/{report_id}/equipment")
-def get_equipment(report_id: int, db: Session = Depends(get_db)):
+def get_equipment(
+    report_id: int,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    assert_report_owned(db, report_id, user_email)
     items = db.query(Equipment).filter_by(report_id=report_id).all()
     return items
 
@@ -49,7 +67,13 @@ class EquipmentList(BaseModel):
 
 
 @router.put("/{report_id}/equipment")
-def replace_equipment(report_id: int, payload: EquipmentList, db: Session = Depends(get_db)):
+def replace_equipment(
+    report_id: int,
+    payload: EquipmentList,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    assert_report_owned(db, report_id, user_email)
     # Simple replace-all strategy for this report's equipment
     db.query(Equipment).filter_by(report_id=report_id).delete()
     for eq_data in payload.items:

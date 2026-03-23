@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { apiFetch } from "../api/client";
 import "../styles/Maintenance.css";
 
 /** Default empty shape so the page always has valid data to render. */
@@ -45,7 +46,7 @@ export default function Maintenance() {
     let cancelled = false;
     setLoading(true);
     setError("");
-    fetch(`/api/wells/${wellId}/maintenance`)
+    apiFetch(`/api/wells/${wellId}/maintenance`)
       .then((res) => {
         if (!res.ok) throw new Error(res.status === 404 ? "Well not found" : `Error ${res.status}`);
         return res.json();

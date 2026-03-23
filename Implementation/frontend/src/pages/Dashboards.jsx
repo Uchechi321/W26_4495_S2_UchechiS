@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
+import { apiFetch } from "../api/client";
 import Wellbore from "../components/Wellbore";
 import KpiCard from "../components/KpiCard";
 import SegmentModal from "../components/SegmentModal";
@@ -23,7 +24,7 @@ export default function Dashboard() {
       setError("");
 
       try {
-        const res = await fetch(`/api/wells/${wellId}/dashboard`);
+        const res = await apiFetch(`/api/wells/${wellId}/dashboard`);
         if (!res.ok) throw new Error(`Backend error: ${res.status}`);
         const data = await res.json();
         setDash(data);

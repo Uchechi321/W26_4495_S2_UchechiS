@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { apiFetch } from "../api/client";
 import "../styles/UploadBox.css";
 
 export default function UploadBox({ wellId }) {
@@ -19,7 +20,7 @@ export default function UploadBox({ wellId }) {
     form.append("report_date", reportDate);
     form.append("parser_type", parserType);
 
-    const res = await fetch("/api/upload/daily-report", {
+    const res = await apiFetch("/api/upload/daily-report", {
       method: "POST",
       body: form
     });

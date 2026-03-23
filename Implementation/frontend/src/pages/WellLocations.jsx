@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
+import { apiFetch } from "../api/client";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "../styles/WellLocations.css";
@@ -48,7 +49,7 @@ export default function WellLocations() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/wells/");
+        const res = await apiFetch("/api/wells/");
         if (!res.ok) throw new Error(`Failed to load wells: ${res.status}`);
         const data = await res.json();
         if (cancelled) return;

@@ -2,7 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .routers import predictive
-from .database import Base, engine, add_mud_desc_column_if_missing
+from .database import Base, engine, add_mud_desc_column_if_missing, add_owner_email_column_if_missing
+from .auth_scope import bootstrap_legacy_well_owners
 from .routers import upload, wells, operations, reports, mud_equipment  # or segments if separate
 from .models import mud, equipment   # or whatever file you put them in
 
@@ -25,6 +26,8 @@ app.include_router(mud_equipment.router)
 
 
 Base.metadata.create_all(bind=engine)
+add_owner_email_column_if_missing()
+bootstrap_legacy_well_owners(engine)
 add_mud_desc_column_if_missing()
 
 @app.get("/")

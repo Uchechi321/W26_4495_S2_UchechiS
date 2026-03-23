@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/client";
 import "../styles/UploadReport.css";
 
 export default function UploadReport() {
@@ -30,7 +31,7 @@ export default function UploadReport() {
     formData.append("parser_type", parser);
 
     try {
-      const res = await fetch("/api/upload/daily-report", {
+      const res = await apiFetch("/api/upload/daily-report", {
         method: "POST",
         body: formData,
       });

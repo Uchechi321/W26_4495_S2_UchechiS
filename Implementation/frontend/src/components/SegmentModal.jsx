@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "../api/client";
 import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
 import "../styles/SegmentModal.css";
 
@@ -23,7 +24,7 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
     setExplanationError("");
     try {
       // Use text-only analysis endpoint; send description + segment context so title/depth show correctly
-      const res = await fetch(`/api/wells/segment-text-analysis`, {
+      const res = await apiFetch(`/api/wells/segment-text-analysis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

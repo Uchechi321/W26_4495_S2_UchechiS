@@ -5,6 +5,7 @@ import logging
 
 from ..database import SessionLocal
 from ..models.operation import Operation
+from ..auth_scope import require_user_email, get_well_for_user
 
 # DailyReport is optional (only used for date filtering & recordedAt)
 try:
@@ -52,11 +53,13 @@ def get_operations_for_well(
     start: date | None = Query(default=None, description="YYYY-MM-DD"),
     end: date | None = Query(default=None, description="YYYY-MM-DD"),
     db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
 ):
     """
     Returns operations for a well.
     If DailyReport exists, you can filter by report_date using start/end.
     """
+    get_well_for_user(db, well_id, user_email)
     # Base query
     q = db.query(Operation).filter(Operation.well_id == well_id)
 
@@ -94,10 +97,12 @@ def get_segments_for_well(
     start: date | None = Query(default=None, description="YYYY-MM-DD"),
     end: date | None = Query(default=None, description="YYYY-MM-DD"),
     db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
 ):
     """
     Converts operations into frontend-friendly segments for the Wellbore view.
     """
+    get_well_for_user(db, well_id, user_email)
     # If DailyReport exists, we’ll join it to add recordedAt and allow date filtering.
     if DailyReport is not None:
         q = (
@@ -187,7 +192,12 @@ def get_segments_for_well(
     }
 
 @router.get("/{well_id}/dashboard")
-def get_dashboard(well_id: str, db: Session = Depends(get_db)):
+def get_dashboard(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    get_well_for_user(db, well_id, user_email)
     # Load all operations for this well (join DailyReport to include report_date for recordedAt)
     if DailyReport is not None:
         rows = (

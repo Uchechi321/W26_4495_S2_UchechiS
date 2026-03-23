@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/client";
 import "../styles/Wells.css";
 
 export default function Wells() {
@@ -36,7 +37,7 @@ export default function Wells() {
       setError("");
 
       try {
-        const res = await fetch("/api/wells/");
+        const res = await apiFetch("/api/wells/");
         if (!res.ok) throw new Error(`Backend error: ${res.status}`);
         const data = await res.json();
         setWells(data);
@@ -81,6 +82,7 @@ export default function Wells() {
             className="logoutBtn"
             onClick={() => {
               localStorage.removeItem("auth");
+              localStorage.removeItem("recentWells");
               navigate("/");
             }}
           >
@@ -164,8 +166,8 @@ export default function Wells() {
               <button
                 className="modalCreateBtn"
                 onClick={async () => {
-                  await fetch(
-                    `/api/wells?well_id=${newWellId}&well_name=${newName}&location=${newLocation}`,
+                  await apiFetch(
+                    `/api/wells?well_id=${encodeURIComponent(newWellId)}&well_name=${encodeURIComponent(newName)}&location=${encodeURIComponent(newLocation)}`,
                     { method: "POST" }
                   );
                   setShowModal(false);

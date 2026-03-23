@@ -11,3 +11,5 @@ class Well(Base):
     total_depth = Column(Float, nullable=True)               # e.g., 2000.0
     spud_date = Column(Date, nullable=True)
     well_status = Column(String, nullable=True)              # Normal/Warning/Critical
+    # Tied to frontend login email (localStorage "auth") — isolates dashboards per user
+    owner_email = Column(String, nullable=True, index=True)

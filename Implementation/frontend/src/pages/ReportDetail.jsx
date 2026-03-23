@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/client";
 import "../styles/ReportDetail.css";
 
 // ❌ REMOVED classifyOperation()
@@ -36,7 +37,7 @@ export default function ReportDetail() {
     setError("");
     async function load() {
       try {
-        const res = await fetch(`/api/reports/${reportId}`);
+        const res = await apiFetch(`/api/reports/${reportId}`);
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
           setReport(null);
@@ -92,7 +93,7 @@ export default function ReportDetail() {
       }))
     };
 
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/reports/${reportId}/operations`,
       {
         method: "PUT",
@@ -144,7 +145,7 @@ export default function ReportDetail() {
   // SAVE MUD
   // --------------------------
   async function handleSaveMud() {
-    const res = await fetch(`/api/report-details/${reportId}/mud`, {
+    const res = await apiFetch(`/api/report-details/${reportId}/mud`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(mudDraft || {}),
@@ -165,7 +166,7 @@ export default function ReportDetail() {
   // --------------------------
   async function handleSaveEquipment() {
     const payload = { items: equipmentDraft };
-    const res = await fetch(`/api/report-details/${reportId}/equipment`, {
+    const res = await apiFetch(`/api/report-details/${reportId}/equipment`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

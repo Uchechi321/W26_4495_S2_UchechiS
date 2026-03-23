@@ -1,7 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
+from ..auth_scope import require_user_email, assert_report_owned, normalize_email
+from ..models.well import Well
 from ..models.daily_report import DailyReport
 from ..models.operation import Operation
 from ..models.event import Event
@@ -23,8 +26,18 @@ def get_db():
 # GET /reports  → list all reports
 # ------------------------------------------
 @router.get("/")
-def list_reports(db: Session = Depends(get_db)):
-    reports = db.query(DailyReport).order_by(DailyReport.report_date.desc()).all()
+def list_reports(
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    me = normalize_email(user_email)
+    reports = (
+        db.query(DailyReport)
+        .join(Well, Well.well_id == DailyReport.well_id)
+        .filter(func.lower(Well.owner_email) == me)
+        .order_by(DailyReport.report_date.desc())
+        .all()
+    )
 
     return [
         {
@@ -44,13 +57,14 @@ def list_reports(db: Session = Depends(get_db)):
 # GET /reports/{id}  → report details + ops
 # ------------------------------------------
 @router.get("/{report_id}")
-def get_report_details(report_id: int, db: Session = Depends(get_db)):
-    report = db.query(DailyReport).filter(DailyReport.report_id == report_id).first()
+def get_report_details(
+    report_id: int,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    report = assert_report_owned(db, report_id, user_email)
     mud = db.query(MudProperties).filter_by(report_id=report_id).first()
     equipment = db.query(Equipment).filter_by(report_id=report_id).all()
-
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
 
     ops = (
         db.query(Operation)
@@ -126,11 +140,12 @@ def get_report_details(report_id: int, db: Session = Depends(get_db)):
 # DELETE /reports/{report_id} → delete report and all related data
 # ------------------------------------------
 @router.delete("/{report_id}")
-def delete_report(report_id: int, db: Session = Depends(get_db)):
-    report = db.query(DailyReport).filter(DailyReport.report_id == report_id).first()
-
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found")
+def delete_report(
+    report_id: int,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    report = assert_report_owned(db, report_id, user_email)
 
     # Delete related records first (so dashboard eventCount and KPIs stay in sync)
     db.query(Event).filter(Event.report_id == report_id).delete(synchronize_session=False)
@@ -148,7 +163,13 @@ class OperationUpdate(BaseModel):
     operations: list
 
 @router.put("/{report_id}/operations")
-def update_operations(report_id: int, payload: OperationUpdate, db: Session = Depends(get_db)):
+def update_operations(
+    report_id: int,
+    payload: OperationUpdate,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    assert_report_owned(db, report_id, user_email)
 
     for op_data in payload.operations:
         op_id = op_data.get("operation_id")
@@ -183,10 +204,16 @@ def update_operations(report_id: int, payload: OperationUpdate, db: Session = De
     return {"status": "success"}
 
 @router.put("/operations/{op_id}")
-def update_operation(op_id: int, payload: dict, db: Session = Depends(get_db)):
+def update_operation(
+    op_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
     op = db.query(Operation).filter(Operation.operation_id == op_id).first()
     if not op:
         raise HTTPException(404, "Operation not found")
+    assert_report_owned(db, op.report_id, user_email)
 
     op.description = payload.get("description", op.description)
     op.operation_type = payload.get("operation_type", op.operation_type)
