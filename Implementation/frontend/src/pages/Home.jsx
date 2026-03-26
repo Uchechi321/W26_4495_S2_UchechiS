@@ -1,48 +1,155 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Drill, Activity, Shield, TrendingUp, BarChart3, Database } from "lucide-react";
 import "../styles/Home.css";
 
 export default function Home() {
   const navigate = useNavigate();
+  const features = [
+    {
+      icon: Activity,
+      title: "Real-Time Monitoring",
+      description: "Track drilling operations with live data insights",
+    },
+    {
+      icon: BarChart3,
+      title: "Advanced Analytics",
+      description: "Visualize problems by depth and time with precision",
+    },
+    {
+      icon: Shield,
+      title: "Predictive Maintenance",
+      description: "Prevent failures before they happen with AI insights",
+    },
+    {
+      icon: TrendingUp,
+      title: "Performance Optimization",
+      description: "Maximize efficiency and reduce non-productive time",
+    },
+    {
+      icon: Database,
+      title: "Data Integration",
+      description: "Upload and analyze drilling data seamlessly",
+    },
+    {
+      icon: Drill,
+      title: "Depth Analysis",
+      description: "Detailed segment-by-segment wellbore examination",
+    },
+  ];
 
   return (
     <div className="homePage">
-
-      {/* Icon */}
-      <div className="homeIcon">
-        {/* Clean wellbore-style icon */}
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M12 2v20" />
-          <path d="M7 8h10" />
-          <path d="M9 14h6" />
-        </svg>
+      <div className="homeBgLayer">
+        <div className="homeGlow homeGlowA" />
+        <div className="homeGlow homeGlowB" />
       </div>
 
-      <h1 className="homeTitle">Wellbore Design Intelligence Studio</h1>
+      <div className="homeContainer">
+        <header className="homeNav">
+          <div className="homeBrand">
+            <div className="homeBrandIcon">
+              <Drill size={28} />
+            </div>
+            <span>DrillOps Intelligence</span>
+          </div>
+          <div className="homeNavActions">
+            <button type="button" className="homeBtnGhost" onClick={() => navigate("/login")}>
+              Login
+            </button>
+            <button type="button" className="homeBtnPrimary" onClick={() => navigate("/signup")}>
+              Sign Up
+            </button>
+          </div>
+        </header>
 
-      <p className="homeSubtitle">
-        Plan, validate, and optimize wellbore architecture before spud.
-      </p>
+        <section className="homeHero">
+          <div className="homeHeroText">
+            <div className="homeBadge">🚀 Next-Gen Drilling Intelligence</div>
+            <h1 className="homeTitle">
+              Transform Your
+              <br />
+              <span>Drilling Operations</span>
+            </h1>
+            <p className="homeSubtitle">
+              Harness AI-powered insights to visualize drilling problems, predict equipment failures, and
+              optimize operations in real-time.
+            </p>
 
-      <div className="homeFeatures">
-            <span className="homeFeature">Automated PDF-to-Operations Parsing</span>
-            <span className="homeFeature">Depth-Based Wellbore Visualization</span>
-            <span className="homeFeature">Predictive Maintenance & Risk Scoring</span>
+            <div className="homeHeroActions">
+              <button type="button" className="homeBtnPrimary homeBtnLarge" onClick={() => navigate("/signup")}>
+                Get Started
+              </button>
+              <button type="button" className="homeBtnOutline homeBtnLarge" onClick={() => navigate("/login")}>
+                Watch Demo
+              </button>
+            </div>
+
+            <div className="homeStats">
+              <div>
+                <div className="homeStatValue">95%</div>
+                <div className="homeStatLabel">Accuracy Rate</div>
+              </div>
+              <div>
+                <div className="homeStatValue homeStatCyan">24/7</div>
+                <div className="homeStatLabel">Monitoring</div>
+              </div>
+              <div>
+                <div className="homeStatValue">-40%</div>
+                <div className="homeStatLabel">NPT Reduction</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="homeHeroMedia">
+            <img
+              src="https://images.unsplash.com/photo-1709243258335-77b3005ac3bf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxvaWwlMjBkcmlsbGluZyUyMHJpZyUyMHN1bnNldCUyMGluZHVzdHJpYWx8ZW58MXx8fHwxNzc0NTAyODYwfDA&ixlib=rb-4.1.0&q=80&w=1080"
+              alt="Drilling Rig"
+              className="homeRigImage"
+            />
+            <div className="homeImageOverlay" />
+            <div className="homeCard homeCardTop">
+              <span className="homePulse" />
+              <span>Active Monitoring</span>
+            </div>
+            <div className="homeCard homeCardBottom">
+              <div className="homeCardMeta">Depth</div>
+              <div className="homeCardValue">8,234 ft</div>
+            </div>
+          </div>
+        </section>
+
+        <section className="homeFeaturesSection">
+          <h2>Comprehensive Drilling Intelligence</h2>
+          <p>Everything you need to optimize your drilling operations</p>
+          <div className="homeFeaturesGrid">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <article key={feature.title} className="homeFeatureCard">
+                  <div className="homeFeatureIconWrap">
+                    <Icon size={24} />
+                  </div>
+                  <h3>{feature.title}</h3>
+                  <p>{feature.description}</p>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="homeCta">
+          <h2>Ready to Get Started?</h2>
+          <p>Join leading drilling operations teams using AI-powered insights</p>
+          <div className="homeCtaActions">
+            <button type="button" className="homeBtnPrimary homeBtnLarge" onClick={() => navigate("/signup")}>
+              Start Free Trial
+            </button>
+            <button type="button" className="homeBtnOutline homeBtnLarge" onClick={() => navigate("/login")}>
+              Contact Sales
+            </button>
+          </div>
+        </section>
         </div>
-
-
-      <button className="homeBtn" onClick={() => navigate("/login")}>
-        Enter Dashboard
-      </button>
     </div>
   );
 }
