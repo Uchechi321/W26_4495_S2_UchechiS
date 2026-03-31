@@ -2,7 +2,7 @@ import { useState } from "react";
 import MarketingShell from "../components/MarketingShell";
 
 /** Change this to your team’s support inbox for production. */
-const SUPPORT_EMAIL = "support@drillops.example";
+const SUPPORT_EMAIL = "support@drillmain.example";
 
 export default function Contact() {
   const [name, setName] = useState("");
@@ -13,7 +13,7 @@ export default function Contact() {
 
   function handleSubmit(e) {
     e.preventDefault();
-    const subject = encodeURIComponent(`[DrillOps] ${topic} — ${name || "Inquiry"}`);
+    const subject = encodeURIComponent(`[DrillMain] ${topic} — ${name || "Inquiry"}`);
     const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\nTopic: ${topic}\n\n${message}`);
 
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
@@ -23,7 +23,7 @@ export default function Contact() {
   return (
     <MarketingShell
       title="Contact us"
-      lead="Send us a message about accounts, uploads, or how your team uses DrillOps Intelligence."
+      lead="Send us a message about accounts, uploads, or how your team uses DrillMain Intelligence."
     >
       <div className="mktSection">
         <p>

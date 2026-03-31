@@ -32,7 +32,7 @@ export function MarketingFooter() {
           <Link to="/">Home</Link>
         </div>
       </div>
-      <div className="mktFooterBottom">© {new Date().getFullYear()} DrillOps Intelligence. All rights reserved.</div>
+      <div className="mktFooterBottom">© {new Date().getFullYear()} DrillMain Intelligence. All rights reserved.</div>
     </footer>
   );
 }
@@ -53,7 +53,7 @@ export default function MarketingShell({ title, lead, children }) {
             <span className="mktBrandIcon">
               <Drill size={22} />
             </span>
-            DrillOps Intelligence
+            DrillMain Intelligence
           </Link>
 
           <nav className="mktNavLinks" aria-label="Site">

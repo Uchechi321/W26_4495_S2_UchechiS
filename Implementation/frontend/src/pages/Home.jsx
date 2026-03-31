@@ -51,7 +51,7 @@ export default function Home() {
             <div className="homeBrandIcon">
               <Drill size={28} />
             </div>
-            <span>DrillOps Intelligence</span>
+            <span>DrillMain Intelligence</span>
           </Link>
 
           <nav className="homeNavLinks" aria-label="Site">

@@ -65,7 +65,7 @@ export default function SignUp() {
           </div>
           <div className="suShowcaseBody">
             <h2>Join Leading Drilling Teams</h2>
-            <p>Create your free account and start using DrillOps Intelligence today.</p>
+            <p>Create your free account and start using DrillMain Intelligence today.</p>
             <ul className="suBenefitList">
               <li>No credit card required</li>
               <li>Unlimited access</li>
@@ -85,7 +85,7 @@ export default function SignUp() {
             <span className="suBrandIcon">
               <Drill size={18} strokeWidth={2.25} aria-hidden />
             </span>
-            <span className="suBrandText">DrillOps Intelligence</span>
+            <span className="suBrandText">DrillMain Intelligence</span>
           </div>
 
           <h1 id="signup-heading" className="suTitle">

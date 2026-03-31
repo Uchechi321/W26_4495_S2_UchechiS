@@ -4,7 +4,7 @@ export default function Terms() {
   return (
     <MarketingShell
       title="Terms of use"
-      lead="By using DrillOps Intelligence you agree to the following basic rules. Your organization may add its own policies for production deployments."
+      lead="By using DrillMain Intelligence you agree to the following basic rules. Your organization may add its own policies for production deployments."
     >
       <div className="mktSection">
         <h2>Acceptable use</h2>
@@ -17,7 +17,7 @@ export default function Terms() {
       <div className="mktSection">
         <h2>Accuracy of data</h2>
         <p>
-          Dashboards and KPIs depend on the reports and inputs you provide. DrillOps Intelligence does not replace professional engineering judgment or site-specific safety procedures.
+          Dashboards and KPIs depend on the reports and inputs you provide. DrillMain Intelligence does not replace professional engineering judgment or site-specific safety procedures.
         </p>
       </div>
 

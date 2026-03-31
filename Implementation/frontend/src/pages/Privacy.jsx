@@ -4,7 +4,7 @@ export default function Privacy() {
   return (
     <MarketingShell
       title="Privacy"
-      lead="This page describes how DrillOps Intelligence treats information in general terms."
+      lead="This page describes how DrillMain Intelligence treats information in general terms."
     >
       <div className="mktSection">
         <h2>Information you provide</h2>

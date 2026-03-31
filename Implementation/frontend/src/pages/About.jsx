@@ -3,13 +3,13 @@ import MarketingShell from "../components/MarketingShell";
 export default function About() {
   return (
     <MarketingShell
-      title="About DrillOps Intelligence"
+      title="About DrillMain Intelligence"
       lead="We help drilling teams turn well reports and operational data into clear dashboards—so you can spot problems by depth, track equipment health, and see where your wells sit on the map."
     >
       <div className="mktSection">
         <h2>What we do</h2>
         <p>
-          DrillOps Intelligence is built for people who run and support drilling operations.
+          DrillMain Intelligence is built for people who run and support drilling operations.
           You register wells, upload drilling PDF reports, and the system organizes that
           information into per-well dashboards, KPI views, maintenance tracking, and fleet-level
           summary reports.

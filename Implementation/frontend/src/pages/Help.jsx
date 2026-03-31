@@ -4,7 +4,7 @@ import MarketingShell from "../components/MarketingShell";
 const faqs = [
   {
     q: "Do I need to install anything?",
-    a: "No. DrillOps Intelligence runs in your web browser.",
+    a: "No. DrillMain Intelligence runs in your web browser.",
   },
   {
     q: "Why can’t I see the Wells page?",
@@ -67,7 +67,7 @@ export default function Help() {
           <h3>About the product</h3>
           <p>
             <Link to="/about" style={{ color: "#60a5fa" }}>
-              About DrillOps Intelligence
+              About DrillMain Intelligence
             </Link>{" "}
             — who it is for and what problems it solves.
           </p>
