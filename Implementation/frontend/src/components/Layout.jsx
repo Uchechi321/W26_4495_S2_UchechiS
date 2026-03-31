@@ -5,7 +5,7 @@ export default function Layout() {
   return (
     <div className="layoutContainer">
       <aside className="sidebar">
-        <h2 className="sidebarTitle">Drilling Ops DSS</h2>
+        <h2 className="sidebarTitle">DrillMain Intelligence</h2>
 
         <nav className="nav">
           <NavLink
@@ -27,6 +27,10 @@ export default function Layout() {
             className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
           >
             Well Location
+          </NavLink>
+
+          <NavLink to="/" className="navLink" onClick={() => localStorage.removeItem("auth")}>
+            Log out
           </NavLink>
         </nav>
       </aside>
