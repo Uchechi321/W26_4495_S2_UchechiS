@@ -49,6 +49,87 @@
   gap: 14px;
 }
 
+.dashNptPlotCard {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+}
+
+.dashNptPlotCard:hover {
+  border-color: var(--color-primary-light, #dbeafe);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.dashNptPlotTitle {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.dashNptPlotBody {
+  margin-top: 6px;
+}
+
+.dashNptLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dashNptLegendItem {
+  font-size: 13px;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashNptLegendItem::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.dashNptLegendItem--npt::before {
+  background: #dc2626;
+}
+
+.dashNptLegendItem--prod::before {
+  background: #16a34a;
+}
+
+.dashNptSummaryTable {
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashNptSummaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.dashNptSummaryRow--npt {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.dashNptSummaryRow--prod {
+  background: #f0fdf4;
+  color: #166534;
+}
+
 .reportsBtn {
   padding: 10px 16px;
   background: var(--color-primary);

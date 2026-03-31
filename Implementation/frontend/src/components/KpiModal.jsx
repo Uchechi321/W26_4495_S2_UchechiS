@@ -41,7 +41,6 @@ export default function KpiModal({
   const productiveTime = totalNpt <= 0 ? 0 : Math.round(totalNpt * (100 - 3.5) / 3.5 * 10) / 10;
   const totalHours = totalNpt + productiveTime;
   const displayNptPercent = totalHours > 0 ? ((totalNpt / totalHours) * 100).toFixed(2) : "0";
-  const displayProductivePercent = totalHours > 0 ? ((productiveTime / totalHours) * 100).toFixed(2) : "100";
   const nptEventCount = segments.filter((s) => (Number(s.nptHours) || 0) > 0).length;
 
   // NPT by event type (group segments with NPT by label)
@@ -115,43 +114,6 @@ export default function KpiModal({
     // Match SummaryReports behaviour: open browser print dialog so user can save as PDF.
     window.print();
   }
-
-  const pieData = [
-    { name: "Non-Productive Time", value: totalNpt, color: "#dc2626" },
-    { name: "Productive Time", value: productiveTime, color: "#16a34a" },
-  ].filter((d) => d.value > 0);
-  if (pieData.length === 0) pieData.push({ name: "No data", value: 1, color: "#e5e7eb" });
-
-  /** Outside donut labels (full wording + %); avoids default slice label clipping */
-  const renderNptDonutLabel = ({
-    cx,
-    cy,
-    midAngle,
-    outerRadius,
-    name,
-  }) => {
-    if (name === "No data" || cx == null || cy == null) return null;
-    const RADIAN = Math.PI / 180;
-    const r = (outerRadius ?? 100) + 32;
-    const x = cx + r * Math.cos(-midAngle * RADIAN);
-    const y = cy + r * Math.sin(-midAngle * RADIAN);
-    const cos = Math.cos(-midAngle * RADIAN);
-    const textAnchor = Math.abs(cos) < 0.15 ? "middle" : cos > 0 ? "start" : "end";
-    const pct = name === "Non-Productive Time" ? displayNptPercent : displayProductivePercent;
-    const fill = name === "Non-Productive Time" ? "#b91c1c" : "#166534";
-    const line1 = name === "Non-Productive Time" ? "Non-Productive" : "Productive";
-    const line2 = `Time (${pct}%)`;
-    return (
-      <text x={x} y={y} textAnchor={textAnchor} fill={fill} fontSize={11} fontWeight={700}>
-        <tspan x={x} dy="-0.35em">
-          {line1}
-        </tspan>
-        <tspan x={x} dy="1.25em">
-          {line2}
-        </tspan>
-      </text>
-    );
-  };
 
   // --- Event analytics derived data (for Event Count card) ---
   const totalEvents = segments.length;
@@ -300,54 +262,6 @@ export default function KpiModal({
               <Clock size={22} className="kpiModalNptKpiIcon" />
               <span className="kpiModalNptKpiLabel">NPT Events</span>
               <span className="kpiModalNptKpiValue">{nptEventCount}</span>
-            </div>
-          </div>
-
-          {/* NPT vs Productive Time pie + summary */}
-          <div className="kpiModalNptSection">
-            <h3 className="kpiModalNptSectionTitle">NPT vs Productive Time</h3>
-            <div className="kpiModalNptPieWrap">
-              <ResponsiveContainer width="100%" height={320}>
-                <PieChart margin={{ top: 28, right: 36, bottom: 28, left: 36 }}>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    nameKey="name"
-                    label={renderNptDonutLabel}
-                    labelLine={false}
-                    animationBegin={0}
-                    animationDuration={750}
-                  >
-                    {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => `${Number(v).toFixed(1)} hrs`} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="kpiModalNptLegend kpiModalNptLegend--pie">
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--npt">
-                  Non-Productive Time ({displayNptPercent}%)
-                </span>
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--prod">
-                  Productive Time ({displayProductivePercent}%)
-                </span>
-              </div>
-              <div className="kpiModalNptSummaryTable">
-                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--npt">
-                  <span>Non-Productive Time</span>
-                  <span>{totalNpt.toFixed(1)} hrs ({displayNptPercent}%)</span>
-                </div>
-                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--prod">
-                  <span>Productive Time</span>
-                  <span>{productiveTime.toFixed(1)} hrs ({displayProductivePercent}%)</span>
-                </div>
-              </div>
             </div>
           </div>
 

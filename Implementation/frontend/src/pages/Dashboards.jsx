@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 
 import { apiFetch } from "../api/client";
 import Wellbore from "../components/Wellbore";
@@ -60,6 +61,19 @@ export default function Dashboard() {
       .sort((a, b) => a.date.localeCompare(b.date));
   })();
 
+  const totalNpt = Number(k.nptHours) || 0;
+  const productiveTime = totalNpt <= 0 ? 0 : Math.round((totalNpt * (100 - 3.5)) / 3.5 * 10) / 10;
+  const totalHours = totalNpt + productiveTime;
+  const nptPercent = totalHours > 0 ? ((totalNpt / totalHours) * 100).toFixed(2) : "0.00";
+  const productivePercent = totalHours > 0 ? ((productiveTime / totalHours) * 100).toFixed(2) : "100.00";
+  const nptPieData = [
+    { name: "Non-Productive Time", value: totalNpt, color: "#dc2626" },
+    { name: "Productive Time", value: productiveTime, color: "#16a34a" },
+  ].filter((d) => d.value > 0);
+  if (nptPieData.length === 0) {
+    nptPieData.push({ name: "No data", value: 1, color: "#e5e7eb" });
+  }
+
   return (
     <div className="dash">
       <div className="dashTop">
@@ -94,23 +108,79 @@ export default function Dashboard() {
         </section>
 
         <aside className="dashRight">
-          <KpiCard
-            icon="🕒"
-            title="Non-Productive Time"
-            value={`${k.nptHours} hrs`}
-            subtitle="Total across all events"
-            badge="NPT"
-            tone="danger"
-            onClick={() => setKpiModal({
-              title: "Non-Productive Time",
-              text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed.",
-              chartData: nptByReportDate,
-              chartType: "nptByDate",
-              wellName: dash.well?.well_name || wellId,
-              segments: dash.segments || [],
-              kpis: dash.kpis || {},
-            })}
-          />
+          <section
+            className="dashNptPlotCard"
+            role="button"
+            tabIndex={0}
+            onClick={() =>
+              setKpiModal({
+                title: "Non-Productive Time",
+                text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed.",
+                chartData: nptByReportDate,
+                chartType: "nptByDate",
+                wellName: dash.well?.well_name || wellId,
+                segments: dash.segments || [],
+                kpis: dash.kpis || {},
+              })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setKpiModal({
+                  title: "Non-Productive Time",
+                  text: "Non-Productive Time (NPT) is the total hours where drilling was stopped or delayed.",
+                  chartData: nptByReportDate,
+                  chartType: "nptByDate",
+                  wellName: dash.well?.well_name || wellId,
+                  segments: dash.segments || [],
+                  kpis: dash.kpis || {},
+                });
+              }
+            }}
+          >
+            <h3 className="dashNptPlotTitle">NPT vs Productive Time</h3>
+
+            <div className="dashNptPlotBody">
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart margin={{ top: 12, right: 16, bottom: 12, left: 16 }}>
+                  <Pie
+                    data={nptPieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={48}
+                    outerRadius={82}
+                    paddingAngle={2}
+                  >
+                    {nptPieData.map((entry, i) => (
+                      <Cell key={`${entry.name}-${i}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="dashNptLegend">
+              <span className="dashNptLegendItem dashNptLegendItem--npt">Non-Productive Time ({nptPercent}%)</span>
+              <span className="dashNptLegendItem dashNptLegendItem--prod">Productive Time ({productivePercent}%)</span>
+            </div>
+
+            <div className="dashNptSummaryTable">
+              <div className="dashNptSummaryRow dashNptSummaryRow--npt">
+                <span>Non-Productive Time</span>
+                <strong>
+                  {totalNpt.toFixed(1)} hrs ({nptPercent}%)
+                </strong>
+              </div>
+              <div className="dashNptSummaryRow dashNptSummaryRow--prod">
+                <span>Productive Time</span>
+                <strong>
+                  {productiveTime.toFixed(1)} hrs ({productivePercent}%)
+                </strong>
+              </div>
+            </div>
+          </section>
 
           <KpiCard
             icon="📈"
