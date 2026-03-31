@@ -1,5 +1,6 @@
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Drill, Activity, Shield, TrendingUp, BarChart3, Database } from "lucide-react";
+import { MarketingFooter } from "../components/MarketingShell";
 import "../styles/Home.css";
 
 export default function Home() {
@@ -46,12 +47,28 @@ export default function Home() {
 
       <div className="homeContainer">
         <header className="homeNav">
-          <div className="homeBrand">
+          <Link to="/" className="homeBrand">
             <div className="homeBrandIcon">
               <Drill size={28} />
             </div>
             <span>DrillOps Intelligence</span>
-          </div>
+          </Link>
+
+          <nav className="homeNavLinks" aria-label="Site">
+            <Link to="/about" className="homeNavLink">
+              About
+            </Link>
+            <Link to="/how-it-works" className="homeNavLink">
+              How It Works
+            </Link>
+            <Link to="/help" className="homeNavLink">
+              Help
+            </Link>
+            <Link to="/contact" className="homeNavLink">
+              Contact
+            </Link>
+          </nav>
+
           <div className="homeNavActions">
             <button type="button" className="homeBtnGhost" onClick={() => navigate("/login")}>
               Login
@@ -77,10 +94,10 @@ export default function Home() {
 
             <div className="homeHeroActions">
               <button type="button" className="homeBtnPrimary homeBtnLarge" onClick={() => navigate("/signup")}>
-                Get Started
+                Get started
               </button>
-              <button type="button" className="homeBtnOutline homeBtnLarge" onClick={() => navigate("/login")}>
-                Watch Demo
+              <button type="button" className="homeBtnOutline homeBtnLarge" onClick={() => navigate("/how-it-works")}>
+                How it works
               </button>
             </div>
 
@@ -142,13 +159,15 @@ export default function Home() {
           <p>Join leading drilling operations teams using AI-powered insights</p>
           <div className="homeCtaActions">
             <button type="button" className="homeBtnPrimary homeBtnLarge" onClick={() => navigate("/signup")}>
-              Start Free Trial
+              Get started
             </button>
             <button type="button" className="homeBtnOutline homeBtnLarge" onClick={() => navigate("/login")}>
-              Contact Sales
+              Contact us
             </button>
           </div>
         </section>
+
+        <MarketingFooter />
         </div>
     </div>
   );

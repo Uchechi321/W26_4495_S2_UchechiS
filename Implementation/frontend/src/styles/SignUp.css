@@ -1,119 +1,396 @@
-/* SignUp – same layout as Login (gradient + glass card), theme variables */
-.signupPage {
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #2563eb 100%);
-  padding: 20px;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.signupCard {
-  width: 380px;
-  padding: 36px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.3s ease;
-}
-
-.signupTitle {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 800;
-  text-align: center;
+/* Signup page styled after provided design, using unique su* classes. */
+.suPage {
+  min-height: 100vh;
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
   color: #fff;
+  background: linear-gradient(135deg, #020617 0%, #0b1120 45%, #030712 100%);
 }
 
-.signupSubtitle {
-  text-align: center;
-  margin-top: 6px;
-  margin-bottom: 24px;
-  color: rgba(255, 255, 255, 0.9);
+.suBg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.signupForm {
+.suBlob {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 999px;
+  filter: blur(72px);
+  opacity: 0.22;
+  animation: suFloat 10s ease-in-out infinite;
+}
+
+.suBlobA {
+  top: -80px;
+  right: -80px;
+  background: rgba(8, 145, 178, 0.55);
+}
+
+.suBlobB {
+  bottom: -90px;
+  left: -70px;
+  background: rgba(37, 99, 235, 0.55);
+  animation-delay: 1s;
+}
+
+@keyframes suFloat {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(20px, -10px) scale(1.08);
+  }
+}
+
+.suWrap {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.suShowcase {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 52px;
+  border-right: 1px solid rgba(51, 65, 85, 0.6);
+  background: linear-gradient(160deg, rgba(8, 47, 73, 0.24), rgba(30, 58, 138, 0.2));
 }
 
-.signupForm label {
-  font-size: 14px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.95);
+.suShowcaseMedia {
+  width: min(520px, 100%);
+  margin-bottom: 24px;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
 }
 
-.signupForm input {
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 15px;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--color-text);
-  transition: 0.2s ease;
+.suRigImage {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  display: block;
 }
 
-.signupForm input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-  outline: none;
+.suShowcaseBody {
+  max-width: 520px;
+  width: min(520px, 100%);
 }
 
-.signupError {
-  background: var(--color-danger-bg);
-  color: var(--color-danger);
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 14px;
-  text-align: center;
+.suShowcaseBody h2 {
+  margin: 0 0 12px;
+  font-size: 40px;
+  line-height: 1.15;
 }
 
-.signupBtn {
-  margin-top: 10px;
-  padding: 12px 16px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 8px;
+.suShowcaseBody p {
+  margin: 0 0 24px;
+  font-size: 20px;
+  color: #94a3b8;
+}
+
+.suBenefitList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.suBenefitList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #cbd5e1;
+}
+
+.suBenefitList li::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22d3ee;
+  box-shadow: 0 0 0 6px rgba(34, 211, 238, 0.12);
+}
+
+.suAuthPanel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 34px 38px;
+}
+
+.suAuthPanel::before {
+  content: "";
+  position: absolute;
+  inset: 22px 22px 22px 6px;
+  border-radius: 20px;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+  background: rgba(15, 23, 42, 0.22);
+  pointer-events: none;
+}
+
+.suBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: none;
+  background: none;
+  color: #94a3b8;
   cursor: pointer;
-  font-size: 15px;
+  margin-bottom: 16px;
+  font: inherit;
+  z-index: 1;
+}
+
+.suBack:hover {
+  color: #e2e8f0;
+}
+
+.suBrand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  z-index: 1;
+}
+
+.suBrandIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2563eb, #06b6d4);
+}
+
+.suBrandText {
+  font-size: 40px;
+  font-weight: 800;
+}
+
+.suTitle {
+  margin: 0;
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 1.05;
+  z-index: 1;
+}
+
+.suSubtitle {
+  margin: 8px 0 18px;
+  color: #94a3b8;
+  font-size: 24px;
+  z-index: 1;
+}
+
+.suForm {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 14px;
+  z-index: 1;
+}
+
+.suField label {
+  display: block;
+  margin-bottom: 6px;
+  color: #cbd5e1;
   font-weight: 600;
-  transition: 0.2s ease;
+  font-size: 16px;
 }
 
-.signupBtn:hover {
-  background: var(--color-primary-hover);
-  transform: translateY(-2px);
+.suInputWrap {
+  position: relative;
 }
 
-.signupSwitch {
-  margin-top: 14px;
-  text-align: center;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
+.suInputIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
 }
 
-.signupSwitch span {
+.suInput {
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  border: 1px solid rgba(71, 85, 105, 0.75);
+  background: rgba(2, 6, 23, 0.42);
   color: #fff;
+  padding: 0 14px 0 42px;
+  font-size: 15px;
+}
+
+.suInput::placeholder {
+  color: #64748b;
+}
+
+.suInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.suInputHasTrailing {
+  padding-right: 46px;
+}
+
+.suInputReveal {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
   cursor: pointer;
-  font-weight: 600;
+}
+
+.suInputReveal:hover {
+  color: #cbd5e1;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.suTerms {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.suTermsCheck {
+  margin-top: 2px;
+  accent-color: #2563eb;
+}
+
+.suTermsLabel a {
+  color: #38bdf8;
+  text-decoration: none;
+}
+
+.suTermsLabel a:hover {
   text-decoration: underline;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
+.suError {
+  background: rgba(220, 38, 38, 0.16);
+  color: #fecaca;
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.suBtn {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.suBtn:hover {
+  filter: brightness(1.05);
+}
+
+.suDivider {
+  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.suDivider span {
+  flex: 1;
+  height: 1px;
+  background: rgba(71, 85, 105, 0.65);
+}
+
+.suDivider small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.suSwitch {
+  margin: 0;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.suSwitchBtn {
+  border: none;
+  background: transparent;
+  color: #60a5fa;
+  cursor: pointer;
+  font-weight: 700;
+  font: inherit;
+}
+
+.suSwitchBtn:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 1100px) {
+  .suWrap {
+    grid-template-columns: 1fr;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+
+  .suShowcase {
+    display: none;
+  }
+
+  .suAuthPanel {
+    padding: 18px 16px;
+  }
+
+  .suAuthPanel::before {
+    inset: 8px;
+  }
+
+  .suForm {
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
   }
 }
+
+@media (max-width: 640px) {
+  .suBrandText {
+    font-size: 30px;
+  }
+
+  .suTitle {
+    font-size: 42px;
+  }
+
+  .suSubtitle {
+    font-size: 18px;
+  }
+
+  .suBtn {
+    font-size: 18px;
+  }
+}
+

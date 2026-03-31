@@ -12,6 +12,12 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import EditReport from "./pages/EditReport";
 import Home from "./pages/Home";
+import About from "./pages/About";
+import HowItWorks from "./pages/HowItWorks";
+import Help from "./pages/Help";
+import Contact from "./pages/Contact";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
 
 import "./App.css";
 
@@ -23,6 +29,12 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/help" element={<Help />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
 
         {/* 🔹 Protected routes (WITH LAYOUT) */}
         <Route element={<Layout />}>
