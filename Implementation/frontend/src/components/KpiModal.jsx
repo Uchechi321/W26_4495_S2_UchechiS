@@ -1,8 +1,5 @@
 import { ChevronLeft, Download, Clock, TrendingUp, Calendar } from "lucide-react";
 import {
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
   LineChart,
@@ -121,38 +118,6 @@ export default function KpiModal({
   const warningEvents = segments.filter((s) => (s.level || "").toLowerCase() === "warning").length;
   const normalEvents = segments.filter((s) => (s.level || "").toLowerCase() === "normal").length;
   const criticalRate = totalEvents > 0 ? ((criticalEvents / totalEvents) * 100).toFixed(1) : "0.0";
-
-  const severityPieData = [
-    { name: "Critical", value: criticalEvents, color: "#dc2626" },
-    { name: "Warning", value: warningEvents, color: "#f59e0b" },
-    { name: "Normal", value: normalEvents, color: "#16a34a" },
-  ].filter((d) => d.value > 0);
-  if (severityPieData.length === 0) {
-    severityPieData.push({ name: "No events", value: 1, color: "#e5e7eb" });
-  }
-
-  const renderSeverityDonutLabel = ({ cx, cy, midAngle, outerRadius, name, value }) => {
-    if (name === "No events" || cx == null || cy == null || !totalEvents) return null;
-    const pct = ((value / totalEvents) * 100).toFixed(1);
-    const RADIAN = Math.PI / 180;
-    const r = (outerRadius ?? 100) + 32;
-    const x = cx + r * Math.cos(-midAngle * RADIAN);
-    const y = cy + r * Math.sin(-midAngle * RADIAN);
-    const cos = Math.cos(-midAngle * RADIAN);
-    const textAnchor = Math.abs(cos) < 0.15 ? "middle" : cos > 0 ? "start" : "end";
-    const fill =
-      name === "Critical" ? "#b91c1c" : name === "Warning" ? "#d97706" : "#15803d";
-    return (
-      <text x={x} y={y} textAnchor={textAnchor} fill={fill} fontSize={11} fontWeight={700}>
-        <tspan x={x} dy="-0.35em">
-          {name}
-        </tspan>
-        <tspan x={x} dy="1.25em">
-          {pct}%
-        </tspan>
-      </text>
-    );
-  };
 
   // Daily events by recordedAt date
   const eventsByDateMap = {};
@@ -414,104 +379,6 @@ export default function KpiModal({
               <span className="kpiModalNptKpiLabel">Critical Rate</span>
               <span className="kpiModalNptKpiValue">{criticalRate}%</span>
             </div>
-          </div>
-
-          {/* Event Severity Distribution */}
-          <div className="kpiModalNptSection">
-            <h3 className="kpiModalNptSectionTitle">Event Severity Distribution</h3>
-            <div className="kpiModalNptPieWrap">
-              <ResponsiveContainer width="100%" height={320}>
-                <PieChart margin={{ top: 28, right: 44, bottom: 28, left: 44 }}>
-                  <Pie
-                    data={severityPieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    nameKey="name"
-                    label={renderSeverityDonutLabel}
-                    labelLine={false}
-                    animationBegin={0}
-                    animationDuration={750}
-                  >
-                    {severityPieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => `${Number(v).toFixed(0)} events`} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="kpiModalNptLegend kpiModalNptLegend--pie kpiModalNptLegend--severity">
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--severity-critical">
-                  Critical (
-                  {totalEvents > 0 ? ((criticalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
-                  %)
-                </span>
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--severity-warning">
-                  Warning (
-                  {totalEvents > 0 ? ((warningEvents / totalEvents) * 100).toFixed(1) : "0.0"}
-                  %)
-                </span>
-                <span className="kpiModalNptLegendItem kpiModalNptLegendItem--severity-normal">
-                  Normal (
-                  {totalEvents > 0 ? ((normalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
-                  %)
-                </span>
-              </div>
-              <div className="kpiModalNptSummaryTable">
-                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--npt">
-                  <span>Critical</span>
-                  <span>
-                    {criticalEvents} events (
-                    {totalEvents > 0 ? ((criticalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
-                    %)
-                  </span>
-                </div>
-                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--severity-warning">
-                  <span>Warning</span>
-                  <span>
-                    {warningEvents} events (
-                    {totalEvents > 0 ? ((warningEvents / totalEvents) * 100).toFixed(1) : "0.0"}
-                    %)
-                  </span>
-                </div>
-                <div className="kpiModalNptSummaryRow kpiModalNptSummaryRow--severity-normal">
-                  <span>Normal</span>
-                  <span>
-                    {normalEvents} events (
-                    {totalEvents > 0 ? ((normalEvents / totalEvents) * 100).toFixed(1) : "0.0"}
-                    %)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Event Count by Type */}
-          <div className="kpiModalNptSection">
-            <h3 className="kpiModalNptSectionTitle">Event Count by Type</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart
-                data={[
-                  { name: "Critical", count: criticalEvents },
-                  { name: "Warning", count: warningEvents },
-                  { name: "Normal", count: normalEvents },
-                ]}
-                margin={{ top: 12, right: 16, bottom: 24, left: 8 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis label={{ value: "Count", angle: -90, position: "insideLeft" }} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(v) => [`${v}`, "Events"]} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Events">
-                  <Cell key="critical" fill="#dc2626" />
-                  <Cell key="warning" fill="#f59e0b" />
-                  <Cell key="normal" fill="#16a34a" />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
           </div>
 
           {/* Cumulative Events Over Time */}

@@ -44,9 +44,170 @@
   align-items: start;
 }
 
+.dashLeft {
+  display: grid;
+  gap: 14px;
+}
+
 .dashRight {
   display: grid;
   gap: 14px;
+}
+
+.dashInsightsCard {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.dashInsightsHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dashInsightsTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.dashInsightsMeta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.dashInsightsTableWrap {
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashInsightsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.dashInsightsTable th,
+.dashInsightsTable td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #f0f2f5;
+  text-align: left;
+  color: #374151;
+}
+
+.dashInsightsTable th {
+  background: #f9fafb;
+  font-weight: 700;
+  color: #111827;
+}
+
+.dashInsightsTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dashInsightsRowClickable {
+  cursor: pointer;
+}
+
+.dashInsightsRowClickable:hover td {
+  background: #f8fafc;
+}
+
+.dashInsightsRowClickable:focus-visible td {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
+.dashInsightsSeverity {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dashInsightsSeverity--critical {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.dashInsightsSeverity--warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.dashInsightsSeverity--normal {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.dashInsightsEmpty {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+}
+
+.dashInsightsHint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.dashInsightsActions {
+  margin-top: 12px;
+  border-top: 1px solid #f0f2f5;
+  padding-top: 12px;
+}
+
+.dashInsightsActions h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: #1f2937;
+}
+
+.dashInsightsActions ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #374151;
+  font-size: 13px;
+  display: grid;
+  gap: 6px;
+}
+
+.dashInsightsSnapshot {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dashInsightsSnapshotItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  display: grid;
+  gap: 4px;
+}
+
+.dashInsightsSnapshotItem span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.dashInsightsSnapshotItem strong {
+  font-size: 13px;
+  color: #0f172a;
 }
 
 .dashNptPlotCard {
@@ -126,6 +287,100 @@
 }
 
 .dashNptSummaryRow--prod {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.dashEventSeverityCard {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+}
+
+.dashEventSeverityCard:hover {
+  border-color: var(--color-primary-light, #dbeafe);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.dashEventSeverityTitle {
+  margin: 0 0 6px 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.dashEventSeverityBody {
+  margin-top: 6px;
+}
+
+.dashEventSeverityLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.dashEventSeverityLegendItem {
+  font-size: 13px;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dashEventSeverityLegendItem::before {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.dashEventSeverityLegendItem--critical::before {
+  background: #dc2626;
+}
+
+.dashEventSeverityLegendItem--warning::before {
+  background: #f59e0b;
+}
+
+.dashEventSeverityLegendItem--normal::before {
+  background: #16a34a;
+}
+
+.dashEventSeveritySummaryTable {
+  margin-top: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.dashEventSeveritySummaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.dashEventSeveritySummaryRow strong {
+  font-weight: 800;
+}
+
+.dashEventSeveritySummaryRow--critical {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.dashEventSeveritySummaryRow--warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.dashEventSeveritySummaryRow--normal {
   background: #f0fdf4;
   color: #166534;
 }

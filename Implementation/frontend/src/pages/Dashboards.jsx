@@ -1,12 +1,23 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from "recharts";
 
 import { apiFetch } from "../api/client";
 import Wellbore from "../components/Wellbore";
 import KpiCard from "../components/KpiCard";
 import SegmentModal from "../components/SegmentModal";
 import KpiModal from "../components/KpiModal";
+import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
 import "../styles/Dashboards.css";
 
 export default function Dashboard() {
@@ -74,6 +85,49 @@ export default function Dashboard() {
     nptPieData.push({ name: "No data", value: 1, color: "#e5e7eb" });
   }
 
+  // --- Event count by type (for dashboard card) ---
+  const eventSegments = dash.segments || [];
+  const totalEvents = eventSegments.length;
+  const criticalEvents = eventSegments.filter((s) => (s.level || "").toLowerCase() === "critical").length;
+  const warningEvents = eventSegments.filter((s) => (s.level || "").toLowerCase() === "warning").length;
+  const normalEvents = eventSegments.filter((s) => (s.level || "").toLowerCase() === "normal").length;
+
+  const criticalPct = totalEvents > 0 ? ((criticalEvents / totalEvents) * 100).toFixed(1) : "0.0";
+  const warningPct = totalEvents > 0 ? ((warningEvents / totalEvents) * 100).toFixed(1) : "0.0";
+  const normalPct = totalEvents > 0 ? ((normalEvents / totalEvents) * 100).toFixed(1) : "0.0";
+
+  const eventCountByTypeData = [
+    { name: "Critical", count: criticalEvents, color: "#dc2626" },
+    { name: "Warning", count: warningEvents, color: "#f59e0b" },
+    { name: "Normal", count: normalEvents, color: "#16a34a" },
+  ];
+
+  const severityRank = { critical: 3, warning: 2, normal: 1 };
+  const topFlaggedSegments = eventSegments
+    .filter((s) => {
+      const lvl = (s.level || "").toLowerCase();
+      return lvl === "critical" || lvl === "warning";
+    })
+    .sort((a, b) => {
+      const rankDiff = (severityRank[(b.level || "").toLowerCase()] || 0) - (severityRank[(a.level || "").toLowerCase()] || 0);
+      if (rankDiff !== 0) return rankDiff;
+      return (Number(b.nptHours) || 0) - (Number(a.nptHours) || 0);
+    })
+    .slice(0, 5);
+  const flaggedNptTotal = topFlaggedSegments.reduce((sum, seg) => sum + (Number(seg.nptHours) || 0), 0);
+  const highestRiskDepth =
+    topFlaggedSegments.length > 0
+      ? `${topFlaggedSegments[0].from ?? 0}-${topFlaggedSegments[0].to ?? 0}m`
+      : "N/A";
+
+  const insightActions = [
+    criticalEvents > 0 ? `Prioritize mitigation for ${criticalEvents} critical event${criticalEvents > 1 ? "s" : ""}.` : null,
+    warningEvents > 0 ? `Review ${warningEvents} warning event${warningEvents > 1 ? "s" : ""} before next operation window.` : null,
+    topFlaggedSegments.length > 0
+      ? `Inspect interval ${topFlaggedSegments[0].from ?? 0}-${topFlaggedSegments[0].to ?? 0}m first (highest current risk).`
+      : "No flagged intervals yet. Continue monitoring incoming reports.",
+  ].filter(Boolean);
+
   return (
     <div className="dash">
       <div className="dashTop">
@@ -105,6 +159,84 @@ export default function Dashboard() {
             segments={dash.segments}       // ✅ segments is top-level
             onSelectSegment={setSelectedSegment}
           />
+
+          <section className="dashInsightsCard">
+            <div className="dashInsightsHeader">
+              <h3 className="dashInsightsTitle">Segment Insights</h3>
+              <span className="dashInsightsMeta">Top flagged intervals</span>
+            </div>
+
+            {topFlaggedSegments.length > 0 ? (
+              <div className="dashInsightsTableWrap">
+                <table className="dashInsightsTable">
+                  <thead>
+                    <tr>
+                      <th>Depth</th>
+                      <th>Severity</th>
+                      <th>Event Type</th>
+                      <th>NPT (hrs)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topFlaggedSegments.map((seg, idx) => {
+                      const level = (seg.level || "normal").toLowerCase();
+                      return (
+                        <tr
+                          key={`${seg.report_id ?? "r"}-${seg.from ?? 0}-${seg.to ?? 0}-${idx}`}
+                          className="dashInsightsRowClickable"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setSelectedSegment(seg)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              setSelectedSegment(seg);
+                            }
+                          }}
+                        >
+                          <td>{seg.from ?? 0}-{seg.to ?? 0}m</td>
+                          <td>
+                            <span className={`dashInsightsSeverity dashInsightsSeverity--${level}`}>
+                              {level.charAt(0).toUpperCase() + level.slice(1)}
+                            </span>
+                          </td>
+                          <td>{getSegmentEventTypeLabel(seg)}</td>
+                          <td>{Number(seg.nptHours || 0).toFixed(1)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="dashInsightsEmpty">No critical or warning intervals found for this well yet.</p>
+            )}
+            <p className="dashInsightsHint">Tip: Click a row to open detailed segment information.</p>
+
+            <div className="dashInsightsActions">
+              <h4>Recommended actions</h4>
+              <ul>
+                {insightActions.map((item, idx) => (
+                  <li key={idx}>{item}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="dashInsightsSnapshot">
+              <div className="dashInsightsSnapshotItem">
+                <span>Flagged intervals</span>
+                <strong>{topFlaggedSegments.length}</strong>
+              </div>
+              <div className="dashInsightsSnapshotItem">
+                <span>Flagged NPT</span>
+                <strong>{flaggedNptTotal.toFixed(1)} hrs</strong>
+              </div>
+              <div className="dashInsightsSnapshotItem">
+                <span>Highest risk depth</span>
+                <strong>{highestRiskDepth}</strong>
+              </div>
+            </div>
+          </section>
         </section>
 
         <aside className="dashRight">
@@ -182,22 +314,82 @@ export default function Dashboard() {
             </div>
           </section>
 
-          <KpiCard
-            icon="📈"
-            title="Event Count"
-            value={`${k.eventCount}`}
-            subtitle={`${k.criticalEvents} critical events`}
-            badge="Events"
-            tone="warning"
-            onClick={() => setKpiModal({
-              title: "Event Count",
-              text: "Event Count is the number of distinct operations or events recorded in the reports for this well.",
-              chartType: "eventCount",
-              wellName: dash.well?.well_name || wellId,
-              segments: dash.segments || [],
-              kpis: dash.kpis || {},
-            })}
-          />
+          <section
+            className="dashEventSeverityCard"
+            role="button"
+            tabIndex={0}
+            onClick={() =>
+              setKpiModal({
+                title: "Event Count",
+                text: "Event Count is the number of distinct operations or events recorded in the reports for this well.",
+                chartType: "eventCount",
+                wellName: dash.well?.well_name || wellId,
+                segments: dash.segments || [],
+                kpis: dash.kpis || {},
+              })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setKpiModal({
+                  title: "Event Count",
+                  text: "Event Count is the number of distinct operations or events recorded in the reports for this well.",
+                  chartType: "eventCount",
+                  wellName: dash.well?.well_name || wellId,
+                  segments: dash.segments || [],
+                  kpis: dash.kpis || {},
+                });
+              }
+            }}
+          >
+            <h3 className="dashEventSeverityTitle">Event Count by Type</h3>
+
+            <div className="dashEventSeverityBody">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={eventCountByTypeData}
+                  margin={{ top: 12, right: 16, bottom: 0, left: 0 }}
+                  barCategoryGap="22%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                    {eventCountByTypeData.map((entry, i) => (
+                      <Cell key={`${entry.name}-${i}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="dashEventSeverityLegend">
+              <span className="dashEventSeverityLegendItem dashEventSeverityLegendItem--critical">Critical ({criticalPct}%)</span>
+              <span className="dashEventSeverityLegendItem dashEventSeverityLegendItem--warning">Warning ({warningPct}%)</span>
+              <span className="dashEventSeverityLegendItem dashEventSeverityLegendItem--normal">Normal ({normalPct}%)</span>
+            </div>
+
+            <div className="dashEventSeveritySummaryTable">
+              <div className="dashEventSeveritySummaryRow dashEventSeveritySummaryRow--critical">
+                <span>Critical</span>
+                <strong>
+                  {criticalEvents} events ({criticalPct}%)
+                </strong>
+              </div>
+              <div className="dashEventSeveritySummaryRow dashEventSeveritySummaryRow--warning">
+                <span>Warning</span>
+                <strong>
+                  {warningEvents} events ({warningPct}%)
+                </strong>
+              </div>
+              <div className="dashEventSeveritySummaryRow dashEventSeveritySummaryRow--normal">
+                <span>Normal</span>
+                <strong>
+                  {normalEvents} events ({normalPct}%)
+                </strong>
+              </div>
+            </div>
+          </section>
 
           <KpiCard
             icon="⚠️"
