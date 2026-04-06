@@ -18,6 +18,9 @@ export default function HowItWorks() {
             After login you land on <strong>Wells</strong>. Add a well with a name and location so you can find it later.
           </li>
           <li>
+            <strong>Upload</strong> a daily drilling report, or you can <strong>input daily rig activity</strong>.
+          </li>
+          <li>
             Open a well to see its <strong>dashboard</strong>. You’ll get KPIs and a clear view of metrics by depth/segment.
           </li>
         </ol>

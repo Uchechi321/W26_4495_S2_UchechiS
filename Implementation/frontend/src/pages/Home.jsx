@@ -124,14 +124,6 @@ export default function Home() {
               className="homeRigImage"
             />
             <div className="homeImageOverlay" />
-            <div className="homeCard homeCardTop">
-              <span className="homePulse" />
-              <span>Active Monitoring</span>
-            </div>
-            <div className="homeCard homeCardBottom">
-              <div className="homeCardMeta">Depth</div>
-              <div className="homeCardValue">8,234 ft</div>
-            </div>
           </div>
         </section>
 
