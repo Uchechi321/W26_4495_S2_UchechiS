@@ -13,6 +13,7 @@ from ..models.equipment import Equipment
 
 # ✅ NEW: import parser(s)
 from ..parsers.nnpc_format_a import parse_nnpc_format_a
+from ..parsers.daily_operations_flexible import parse_daily_operations_flexible
 
 
 def sha256_bytes(content: bytes) -> str:
@@ -63,6 +64,9 @@ def parse_pdf_report(pdf_bytes: bytes, parser_type: str) -> Dict[str, Any]:
 
     if parser_type == "NNPC_FORMAT_A":
         return parse_nnpc_format_a(pdf_bytes)
+
+    if parser_type == "DAILY_OPERATIONS_FLEXIBLE":
+        return parse_daily_operations_flexible(pdf_bytes)
 
     # Default: no parser matched yet
     return {
@@ -236,5 +240,5 @@ def ingest_daily_report_pdf(
         "mud_inserted": mud_inserted,
         "equipment_inserted": equipment_inserted,
         "notes": parsed.get("notes"),
-        "debug_preview": parsed.get("raw_text_preview"),
+        "debug_preview": parsed.get("debug_preview") or parsed.get("raw_text_preview"),
     }
