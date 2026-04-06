@@ -49,6 +49,7 @@ export default function UploadBox({ wellId }) {
         <label>Parser Format</label>
         <select value={parserType} onChange={(e) => setParserType(e.target.value)}>
           <option value="NNPC_FORMAT_A">NNPC Format A</option>
+          <option value="DAILY_OPERATIONS_FLEXIBLE">Daily operations</option>
         </select>
 
         <label>Upload PDF</label>
