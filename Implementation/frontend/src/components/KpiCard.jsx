@@ -11,6 +11,7 @@ export default function KpiCard({ icon, title, value, subtitle, badge, tone = "d
       <div className="kpiTitle">{title}</div>
       <div className="kpiValue">{value}</div>
       <div className="kpiSub">{subtitle}</div>
+      {onClick && <span className="kpiSeeMore">See more</span>}
     </>
   );
 

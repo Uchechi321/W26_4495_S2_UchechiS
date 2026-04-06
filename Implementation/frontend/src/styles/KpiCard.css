@@ -4,6 +4,8 @@
   padding: 18px;
   background: var(--color-card);
   box-shadow: 0 1px 0 rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
 }
 
 .kpiCardClickable {
@@ -50,6 +52,17 @@
 .kpiTitle { font-size: 16px; margin-top: 6px; color: var(--color-text); }
 .kpiValue { font-size: 44px; font-weight: 800; margin: 6px 0; color: var(--color-text); }
 .kpiSub { opacity: 0.7; color: var(--color-text-muted); }
+
+.kpiSeeMore {
+  align-self: flex-end;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-primary, #2563eb);
+  opacity: 0.9;
+  user-select: none;
+}
 
 .kpiCard.danger { background: var(--color-danger-bg); border-color: #fecaca; }
 .kpiCard.warning { background: var(--color-warning-bg); border-color: #fcd34d; }

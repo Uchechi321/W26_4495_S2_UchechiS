@@ -291,6 +291,23 @@
   color: #166534;
 }
 
+.dashKpiSeeMoreRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding-top: 2px;
+}
+
+.dashKpiSeeMore {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-primary, #2563eb);
+  opacity: 0.9;
+  user-select: none;
+  pointer-events: none;
+}
+
 .dashEventSeverityCard {
   background: #fff;
   border: 1px solid #eee;
@@ -383,6 +400,152 @@
 .dashEventSeveritySummaryRow--normal {
   background: #f0fdf4;
   color: #166534;
+}
+
+/* High-Risk Zones: depth strip + interval chips (replaces numeric KPI) */
+.dashHighRiskCard {
+  background: #fef9c3;
+  border: 1px solid #fde047;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashHighRiskCard:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  transform: translateY(-2px);
+}
+
+.dashHighRiskCard:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+.dashHighRiskTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.dashHighRiskIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  font-size: 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.dashHighRiskBadge {
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  background: #fef08a;
+  color: #1e293b;
+}
+
+.dashHighRiskTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.dashHighRiskLead {
+  margin: 6px 0 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #57534e;
+}
+
+.dashHighRiskTrackWrap {
+  margin-top: 4px;
+}
+
+.dashHighRiskTrackLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #78716c;
+  margin-bottom: 4px;
+}
+
+.dashHighRiskTrack {
+  position: relative;
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e7e5e4 0%, #d6d3d1 100%);
+  overflow: visible;
+}
+
+.dashHighRiskBand {
+  position: absolute;
+  top: 2px;
+  height: 10px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+.dashHighRiskBand--critical {
+  background: linear-gradient(180deg, #dc2626, #b91c1c);
+}
+
+.dashHighRiskBand--warn {
+  background: linear-gradient(180deg, #f59e0b, #d97706);
+}
+
+.dashHighRiskChips {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashHighRiskChip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dashHighRiskChip--critical {
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.dashHighRiskChip--warn {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.dashHighRiskChip strong {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.dashHighRiskChipMeta {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.dashHighRiskMore {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #78716c;
 }
 
 .reportsBtn {

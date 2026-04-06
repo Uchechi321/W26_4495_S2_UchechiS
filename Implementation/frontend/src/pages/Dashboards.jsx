@@ -55,7 +55,6 @@ export default function Dashboard() {
   if (!dash) return <div style={{ padding: 16 }}>No data.</div>;
 
   const k = dash.kpis; // ✅ kpis object from backend
-  console.log(k);
 
   // Build NPT by report date from segments (for NPT modal bar chart: x = date, y = NPT hrs)
   const nptByReportDate = (() => {
@@ -127,6 +126,16 @@ export default function Dashboard() {
       ? `Inspect interval ${topFlaggedSegments[0].from ?? 0}-${topFlaggedSegments[0].to ?? 0}m first (highest current risk).`
       : "No flagged intervals yet. Continue monitoring incoming reports.",
   ].filter(Boolean);
+
+  // High-risk zones (matches backend KPI: segments with NPT hours recorded)
+  const highRiskSegments = (dash.segments || [])
+    .filter((s) => (Number(s.nptHours) || 0) > 0)
+    .sort((a, b) => (Number(a.from) || 0) - (Number(b.from) || 0));
+  const depthScaleMax = Math.max(
+    Number(k.depthMax) || 0,
+    ...highRiskSegments.map((s) => Math.max(Number(s.to) || 0, Number(s.from) || 0)),
+    1
+  );
 
   return (
     <div className="dash">
@@ -237,6 +246,16 @@ export default function Dashboard() {
               </div>
             </div>
           </section>
+
+          <KpiCard
+            icon="🔧"
+            title="Maintenance Risk"
+            value={k.maintenanceRisk}
+            subtitle="Prototype rule-based risk"
+            badge="Status"
+            tone="status"
+            onClick={() => setKpiModal({ title: "Maintenance Risk", text: "Maintenance Risk is a rule-based indicator of how likely the well may need maintenance based on critical events and NPT." })}
+          />
         </section>
 
         <aside className="dashRight">
@@ -311,6 +330,9 @@ export default function Dashboard() {
                   {productiveTime.toFixed(1)} hrs ({productivePercent}%)
                 </strong>
               </div>
+            </div>
+            <div className="dashKpiSeeMoreRow">
+              <span className="dashKpiSeeMore">See more</span>
             </div>
           </section>
 
@@ -389,27 +411,101 @@ export default function Dashboard() {
                 </strong>
               </div>
             </div>
+            <div className="dashKpiSeeMoreRow">
+              <span className="dashKpiSeeMore">See more</span>
+            </div>
           </section>
 
-          <KpiCard
-            icon="⚠️"
-            title="High-Risk Zones"
-            value={`${k.highRiskZones}`}
-            subtitle="Depth segments flagged"
-            badge="Risk"
-            tone="risk"
-            onClick={() => setKpiModal({ title: "High-Risk Zones", text: "High-Risk Zones are depth segments that have been flagged due to NPT, stuck pipe, or other critical indicators." })}
-          />
+          <section
+            className="dashHighRiskCard"
+            role="button"
+            tabIndex={0}
+            onClick={() =>
+              setKpiModal({
+                title: "High-Risk Zones",
+                text: "High-Risk Zones are depth segments that have been flagged due to NPT, stuck pipe, or other critical indicators.",
+              })
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setKpiModal({
+                  title: "High-Risk Zones",
+                  text: "High-Risk Zones are depth segments that have been flagged due to NPT, stuck pipe, or other critical indicators.",
+                });
+              }
+            }}
+          >
+            <div className="dashHighRiskTop">
+              <div className="dashHighRiskIcon" aria-hidden>
+                ⚠️
+              </div>
+              <span className="dashHighRiskBadge">Risk</span>
+            </div>
+            <h3 className="dashHighRiskTitle">High-Risk Zones</h3>
+            <p className="dashHighRiskLead">
+              {highRiskSegments.length === 0
+                ? "No depth intervals with recorded NPT yet."
+                : `${highRiskSegments.length} segment${highRiskSegments.length !== 1 ? "s" : ""} with NPT — depth view below`}
+            </p>
 
-          <KpiCard
-            icon="🔧"
-            title="Maintenance Risk"
-            value={k.maintenanceRisk}
-            subtitle="Prototype rule-based risk"
-            badge="Status"
-            tone="status"
-            onClick={() => setKpiModal({ title: "Maintenance Risk", text: "Maintenance Risk is a rule-based indicator of how likely the well may need maintenance based on critical events and NPT." })}
-          />
+            {highRiskSegments.length > 0 && (
+              <>
+                <div className="dashHighRiskTrackWrap" aria-hidden>
+                  <div className="dashHighRiskTrackLabels">
+                    <span>0</span>
+                    <span>{Math.round(depthScaleMax)} m</span>
+                  </div>
+                  <div className="dashHighRiskTrack">
+                    {highRiskSegments.map((s, idx) => {
+                      const from = Number(s.from) || 0;
+                      const to = Number(s.to) ?? from;
+                      const span = Math.max(to - from, depthScaleMax * 0.008);
+                      const leftPct = (from / depthScaleMax) * 100;
+                      const widthPct = Math.min(100 - leftPct, (span / depthScaleMax) * 100);
+                      const lvl = (s.level || "warning").toLowerCase();
+                      return (
+                        <div
+                          key={`hr-${idx}-${from}-${to}`}
+                          className={`dashHighRiskBand dashHighRiskBand--${lvl === "critical" ? "critical" : "warn"}`}
+                          style={{ left: `${leftPct}%`, width: `${Math.max(widthPct, 1.2)}%` }}
+                          title={`${from}–${to} m · ${Number(s.nptHours).toFixed(1)} hrs NPT`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <ul className="dashHighRiskChips">
+                  {highRiskSegments.slice(0, 6).map((s, idx) => {
+                    const from = Number(s.from) || 0;
+                    const to = Number(s.to) ?? from;
+                    const hrs = Number(s.nptHours) || 0;
+                    const lvl = (s.level || "warning").toLowerCase();
+                    return (
+                      <li key={`chip-${idx}-${from}-${to}`}>
+                        <span className={`dashHighRiskChip dashHighRiskChip--${lvl === "critical" ? "critical" : "warn"}`}>
+                          <strong>
+                            {from}–{to} m
+                          </strong>
+                          <span className="dashHighRiskChipMeta">
+                            {hrs.toFixed(1)} hrs NPT
+                            {lvl === "critical" ? " · Critical" : lvl === "warning" ? " · Warning" : ""}
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {highRiskSegments.length > 6 && (
+                  <p className="dashHighRiskMore">+{highRiskSegments.length - 6} more in reports</p>
+                )}
+              </>
+            )}
+            <div className="dashKpiSeeMoreRow">
+              <span className="dashKpiSeeMore">See more</span>
+            </div>
+          </section>
         </aside>
       </div>
 
