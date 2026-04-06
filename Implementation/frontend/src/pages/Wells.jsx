@@ -14,7 +14,6 @@ export default function Wells() {
 
 
   const [wells, setWells] = useState([]);
-  const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -22,17 +21,19 @@ export default function Wells() {
   const [newWellId, setNewWellId] = useState("");
   const [newName, setNewName] = useState("");
   const [newLocation, setNewLocation] = useState("");
+  const [editModal, setEditModal] = useState(false);
+  const [editWellId, setEditWellId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editLocation, setEditLocation] = useState("");
 
-  // Modal for selecting well for actions
+  // Modal for selecting well for reports (which includes upload)
   const [actionModal, setActionModal] = useState(false);
-  const [actionType, setActionType] = useState(""); // "reports" or "upload"
 
   // Soft color palette
   const colors = ["#e8f0fe", "#e6f7f1", "#fff7e6", "#f3e8ff", "#e8faff"];
   const getColor = (i) => colors[i % colors.length];
 
-  useEffect(() => {
-    async function loadWells() {
+  async function loadWells() {
       setLoading(true);
       setError("");
 
@@ -46,14 +47,10 @@ export default function Wells() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
+  useEffect(() => {
     loadWells();
-
-    // Load recently viewed wells
-    const stored = JSON.parse(localStorage.getItem("recentWells") || "[]");
-    setRecent(stored);
-
   }, []);
 
   if (loading) return <div style={{ padding: 16 }}>Loading wells…</div>;
@@ -94,10 +91,7 @@ export default function Wells() {
 
       {/* Quick Actions */}
       <div className="quickActions">
-        <button onClick={() => { setActionType("reports"); setActionModal(true); }}>
-          📄 View Reports
-        </button>
-        <button onClick={() => { setActionType("upload"); setActionModal(true); }}>
+        <button className="quickUploadBtn" onClick={() => setActionModal(true)}>
           ⬆ Upload Report
         </button>
       </div>
@@ -110,28 +104,15 @@ export default function Wells() {
         <div className="statCard">Operators: {operators}</div>
       </div>
 
-      {/* Recently Viewed Wells */}
-      {recent.length > 0 && (
-        <div className="recentSection">
-          <h3 className="recentTitle">Recently Viewed</h3>
-
-          <div className="recentRow">
-            {recent.map((r, i) => (
-              <div
-                key={i}
-                className="recentCard"
-                onClick={() => navigate(`/wells/${r.well_id}`)}
-              >
-                <div className="recentAvatar">
-                  {r.operator ? r.operator[0] : "?"}
-                </div>
-                <div className="recentName">{r.well_name || r.well_id}</div>
-                <div className="recentLoc">{r.location}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Workflow Tips */}
+      <div className="workflowTips">
+        <h3>Workflow Tips</h3>
+        <ul>
+          <li>Click any well card to open its dashboard instantly.</li>
+          <li>Use the Upload Report button to pick a well and upload from Reports.</li>
+          <li>Edit or delete a well from the card actions at the bottom-right.</li>
+        </ul>
+      </div>
 
       {/* Modal: Create Well */}
       {showModal && (
@@ -171,7 +152,7 @@ export default function Wells() {
                     { method: "POST" }
                   );
                   setShowModal(false);
-                  window.location.reload();
+                  await loadWells();
                 }}
               >
                 Create Well
@@ -185,30 +166,86 @@ export default function Wells() {
         </div>
       )}
 
-      {/* Modal: Select Well for Action */}
+      {/* Modal: Select Well for Reports */}
       {actionModal && (
         <div className="modalOverlay">
-          <div className="modalCard">
-            <h3>Select a Well</h3>
+          <div className="modalCard selectWellModal">
+            <div className="selectWellHeader">
+              <h3>Select a Well</h3>
+              <p>Choose where you want to upload or review reports.</p>
+            </div>
 
-            {wells.map((w) => (
+            {wells.length === 0 ? (
+              <div className="selectWellEmpty">No wells found. Create a well first.</div>
+            ) : (
+              <div className="selectWellList">
+                {wells.map((w) => (
+                  <button
+                    key={w.well_id}
+                    className="selectWellBtn"
+                    onClick={() => {
+                      setActionModal(false);
+                      navigate(`/wells/${w.well_id}/reports`);
+                    }}
+                  >
+                    <span className="selectWellBtnTitle">{w.well_name || w.well_id}</span>
+                    <span className="selectWellBtnMeta">{w.well_id}{w.location ? ` • ${w.location}` : ""}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="selectWellActions">
+              <button className="modalCancelBtn" onClick={() => setActionModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Well */}
+      {editModal && (
+        <div className="modalOverlay">
+          <div className="modalCard createWellModal">
+            <h2 className="modalTitle">Edit Well</h2>
+
+            <div className="modalInputs">
+              <label>Well ID</label>
+              <input value={editWellId} disabled />
+
+              <label>Well Name</label>
+              <input
+                placeholder="e.g. Bonga North"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+              />
+
+              <label>Location</label>
+              <input
+                placeholder="e.g. Lagos"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+              />
+            </div>
+
+            <div className="modalActions">
               <button
-                key={w.well_id}
-                className="selectWellBtn"
-                onClick={() => {
-                  setActionModal(false);
-                  if (actionType === "reports") {
-                    navigate(`/wells/${w.well_id}/reports`);
-                  } else {
-                    navigate(`/wells/${w.well_id}/upload`);
-                  }
+                className="modalCreateBtn"
+                onClick={async () => {
+                  await apiFetch(
+                    `/api/wells/${encodeURIComponent(editWellId)}?well_name=${encodeURIComponent(editName)}&location=${encodeURIComponent(editLocation)}`,
+                    { method: "PUT" }
+                  );
+                  setEditModal(false);
+                  await loadWells();
                 }}
               >
-                {w.well_id} — {w.well_name}
+                Save Changes
               </button>
-            ))}
 
-            <button onClick={() => setActionModal(false)}>Cancel</button>
+              <button className="modalCancelBtn" onClick={() => setEditModal(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -221,21 +258,6 @@ export default function Wells() {
             className="wellCard"
             style={{ "--well-color": getColor(i) }}
             onClick={() => {
-              // Save to recently viewed
-              const viewed = JSON.parse(localStorage.getItem("recentWells") || "[]");
-
-              const newEntry = {
-                well_id: w.well_id,
-                well_name: w.well_name,
-                location: w.location,
-                operator: w.operator
-              };
-
-              const filtered = viewed.filter(v => v.well_id !== w.well_id);
-              filtered.unshift(newEntry);
-
-              localStorage.setItem("recentWells", JSON.stringify(filtered.slice(0, 3)));
-
               navigate(`/wells/${w.well_id}`);
             }}
           >
@@ -246,9 +268,42 @@ export default function Wells() {
             <div className="statusBadge status-open">OPEN</div>
 
             <div className="openDash">Open dashboard →</div>
+            <div className="wellCardActions">
+              <button
+                className="wellCardActionBtn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditWellId(w.well_id);
+                  setEditName(w.well_name || "");
+                  setEditLocation(w.location || "");
+                  setEditModal(true);
+                }}
+              >
+                Edit
+              </button>
+              <button
+                className="wellCardActionBtn wellCardActionBtnDanger"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  const ok = window.confirm(
+                    `Are you sure you want to delete ${w.well_name || w.well_id}? This will remove its reports and dashboard data.`
+                  );
+                  if (!ok) return;
+                  await apiFetch(`/api/wells/${encodeURIComponent(w.well_id)}`, { method: "DELETE" });
+                  await loadWells();
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
+      {wells.length === 0 && (
+        <div className="wellsSub" style={{ marginTop: 16 }}>
+          No wells yet. Click <strong>Create Well</strong> to add your first well.
+        </div>
+      )}
       <div className="loggedInUser">Signed in as {localStorage.getItem("auth")}</div>
     </div>
   );

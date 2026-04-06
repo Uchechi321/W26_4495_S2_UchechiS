@@ -1,4 +1,5 @@
 from typing import Optional
+import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -7,11 +8,18 @@ from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
 from ..auth_scope import require_user_email, get_well_for_user, normalize_email
-from ..services.ai_engine import analyze_segment, get_maintenance_analysis, classify_segment_level
+from ..services.ai_engine import (
+    analyze_segment,
+    get_maintenance_analysis,
+    classify_segment_level,
+    classify_segment_level_rule_based,
+)
 from ..models.well import Well
 from ..models.operation import Operation
 from ..models.daily_report import DailyReport
 from ..models.equipment import Equipment
+from ..models.event import Event
+from ..models.mud import MudProperties
 
 router = APIRouter(prefix="/wells", tags=["Wells"])
 
@@ -53,26 +61,89 @@ def create_well(
     user_email: str = Depends(require_user_email),
 ):
     me = normalize_email(user_email)
-    existing = db.query(Well).filter(Well.well_id == well_id).first()
+    requested_id = (well_id or "").strip()
+    requested_name = (well_name or "").strip()
+    requested_location = (location or "").strip() or None
+
+    def _sanitize_base_id(raw: str) -> str:
+        token = re.sub(r"[^A-Za-z0-9-]+", "-", (raw or "").strip())
+        token = re.sub(r"-{2,}", "-", token).strip("-")
+        return (token or "WELL").upper()
+
+    # If user leaves ID empty, derive from well name for a friendlier flow.
+    base_id = _sanitize_base_id(requested_id or requested_name or "WELL")
+
+    existing = db.query(Well).filter(Well.well_id == base_id).first()
     if existing:
         owner = normalize_email(existing.owner_email)
         if owner and owner != me:
-            raise HTTPException(status_code=403, detail="This well ID is already used by another account.")
+            # Account isolation: auto-pick next free ID instead of blocking due to another account.
+            suffix = 2
+            candidate = f"{base_id}-{suffix}"
+            while db.query(Well).filter(Well.well_id == candidate).first():
+                suffix += 1
+                candidate = f"{base_id}-{suffix}"
+            base_id = candidate
+            existing = None
         if not owner:
             existing.owner_email = me
             db.commit()
-            return {"status": "claimed", "well_id": well_id}
-        return {"status": "exists", "well_id": well_id}
+            return {"status": "claimed", "well_id": base_id}
+        if existing:
+            return {"status": "exists", "well_id": base_id}
 
     w = Well(
-        well_id=well_id,
-        well_name=well_name or well_id,
-        location=location,
+        well_id=base_id,
+        well_name=requested_name or base_id,
+        location=requested_location,
         owner_email=me,
     )
     db.add(w)
     db.commit()
-    return {"status": "created", "well_id": well_id}
+    return {"status": "created", "well_id": base_id}
+
+
+@router.put("/{well_id}")
+def update_well(
+    well_id: str,
+    well_name: Optional[str] = None,
+    location: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    well = get_well_for_user(db, well_id, user_email)
+    if well_name is not None:
+        clean_name = well_name.strip()
+        if clean_name:
+            well.well_name = clean_name
+    if location is not None:
+        clean_location = location.strip()
+        well.location = clean_location or None
+    db.commit()
+    return {"status": "updated", "well_id": well.well_id}
+
+
+@router.delete("/{well_id}")
+def delete_well(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    get_well_for_user(db, well_id, user_email)
+    report_ids = [
+        rid for (rid,) in db.query(DailyReport.report_id).filter(DailyReport.well_id == well_id).all()
+    ]
+    if report_ids:
+        db.query(Event).filter(Event.report_id.in_(report_ids)).delete(synchronize_session=False)
+        db.query(Operation).filter(Operation.report_id.in_(report_ids)).delete(synchronize_session=False)
+        db.query(MudProperties).filter(MudProperties.report_id.in_(report_ids)).delete(synchronize_session=False)
+        db.query(Equipment).filter(Equipment.report_id.in_(report_ids)).delete(synchronize_session=False)
+        db.query(DailyReport).filter(DailyReport.report_id.in_(report_ids)).delete(synchronize_session=False)
+    db.query(Operation).filter(Operation.well_id == well_id).delete(synchronize_session=False)
+    db.query(Event).filter(Event.well_id == well_id).delete(synchronize_session=False)
+    db.query(Well).filter(Well.well_id == well_id).delete(synchronize_session=False)
+    db.commit()
+    return {"status": "deleted", "well_id": well_id}
 
 
 @router.get("/summary")
@@ -116,6 +187,8 @@ def get_wells_summary(
 @router.get("/{well_id}/dashboard")
 def get_well_dashboard(
     well_id: str,
+    include_equipment: bool = True,
+    use_ai_level: bool = True,
     db: Session = Depends(get_db),
     user_email: str = Depends(require_user_email),
 ):
@@ -130,7 +203,7 @@ def get_well_dashboard(
         .all()
     )
 
-    # Build "segments" from operations; level (color) is AI-determined when LLM is available
+    # Build "segments" from operations. For fleet pages, use_ai_level=False avoids per-segment LLM calls.
     segments = []
     ops = []
     for o, report_date in ops_with_dates:
@@ -145,32 +218,37 @@ def get_well_dashboard(
             "recordedAt": report_date.isoformat() if report_date else None,
             "report_id": o.report_id,
         }
-        seg["level"] = classify_segment_level(seg)
+        seg["level"] = (
+            classify_segment_level(seg)
+            if use_ai_level
+            else classify_segment_level_rule_based(seg)
+        )
         segments.append(seg)
 
-    # Equipment per report (for segment modal "Equipment Involved")
-    report_ids = list({o.report_id for o in ops})
     equipment_by_report = {}
-    for rid in report_ids:
-        items = db.query(Equipment).filter_by(report_id=rid).order_by(Equipment.id).all()
-        equipment_by_report[str(rid)] = [
-            {
-                "component_type": e.component_type,
-                "joints": e.joints,
-                "length_ft": e.length_ft,
-                "od_in": e.od_in,
-                "id_in": e.id_in,
-                "connection": e.connection,
-                "weight_ppf": e.weight_ppf,
-                "grade": e.grade,
-                "pin_box": e.pin_box,
-                "serial_no": e.serial_no,
-                "spiral": e.spiral,
-                "fish_neck_length_ft": e.fish_neck_length_ft,
-                "fish_neck_od": e.fish_neck_od,
-            }
-            for e in items
-        ]
+    if include_equipment:
+        # Equipment per report (for segment modal "Equipment Involved")
+        report_ids = list({o.report_id for o in ops})
+        for rid in report_ids:
+            items = db.query(Equipment).filter_by(report_id=rid).order_by(Equipment.id).all()
+            equipment_by_report[str(rid)] = [
+                {
+                    "component_type": e.component_type,
+                    "joints": e.joints,
+                    "length_ft": e.length_ft,
+                    "od_in": e.od_in,
+                    "id_in": e.id_in,
+                    "connection": e.connection,
+                    "weight_ppf": e.weight_ppf,
+                    "grade": e.grade,
+                    "pin_box": e.pin_box,
+                    "serial_no": e.serial_no,
+                    "spiral": e.spiral,
+                    "fish_neck_length_ft": e.fish_neck_length_ft,
+                    "fish_neck_od": e.fish_neck_od,
+                }
+                for e in items
+            ]
 
     # KPIs (simple MVP)
     total_npt = sum([o.npt_hours or 0 for o in ops])
