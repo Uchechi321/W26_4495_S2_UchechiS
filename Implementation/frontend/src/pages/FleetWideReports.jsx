@@ -96,21 +96,32 @@ export default function FleetWideReports() {
         if (cancelled) return;
 
         const activeWells = wells.filter((w) => (w.report_count ?? 0) > 0);
-        const dashboards = await Promise.all(
+        const dashboards = await Promise.allSettled(
           activeWells.map(async (w) => {
+            // Per-well timeout so one slow dashboard call doesn't block the whole fleet page.
+            const dController = new AbortController();
+            const dTimeout = setTimeout(() => dController.abort(), 15000);
             try {
-              const r = await apiFetch(`/api/wells/${w.well_id}/dashboard`);
+              const r = await apiFetch(
+                `/api/wells/${w.well_id}/dashboard?include_equipment=false&use_ai_level=false`,
+                { signal: dController.signal }
+              );
               if (!r.ok) return { wellSummary: w, dashboard: null };
               const dash = await r.json();
               return { wellSummary: w, dashboard: dash };
             } catch {
               return { wellSummary: w, dashboard: null };
+            } finally {
+              clearTimeout(dTimeout);
             }
           })
         );
 
         if (cancelled) return;
-        setWellDashboards(dashboards.filter((x) => x.dashboard));
+        const resolvedDashboards = dashboards
+          .map((x) => (x.status === "fulfilled" ? x.value : null))
+          .filter((x) => x && x.dashboard);
+        setWellDashboards(resolvedDashboards);
       } catch (e) {
         if (cancelled) return;
         setError(e?.message || "Failed to load fleet reports");
