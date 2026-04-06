@@ -16,12 +16,14 @@ L.Icon.Default.mergeOptions({
 const DEFAULT_CENTER = [9.082, 8.6753]; // Nigeria
 const DEFAULT_ZOOM = 5;
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
-const GEOCODE_DELAY_MS = 1100; // Nominatim rate limit: 1 req/sec
+const GEOCODE_DELAY_MS = 450; // Keep requests spaced while still improving UX
+const GEO_CACHE_KEY = "wellGeocodeCache.v1";
 
 export default function WellLocations() {
   const [wells, setWells] = useState([]);
   const [wellsWithCoords, setWellsWithCoords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [geocoding, setGeocoding] = useState(false);
   const [error, setError] = useState("");
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -55,22 +57,53 @@ export default function WellLocations() {
         if (cancelled) return;
         const list = Array.isArray(data) ? data : [];
         setWells(list);
+        // Load cached coordinates immediately for a fast initial render.
+        let cache = {};
+        try {
+          cache = JSON.parse(localStorage.getItem(GEO_CACHE_KEY) || "{}");
+        } catch {
+          cache = {};
+        }
+        const withCoordsFromCache = list
+          .map((w) => {
+            const key = (w.location || w.well_name || w.well_id || "").trim().toLowerCase();
+            const c = cache[key];
+            if (!c || typeof c.lat !== "number" || typeof c.lng !== "number") return null;
+            return { ...w, lat: c.lat, lng: c.lng };
+          })
+          .filter(Boolean);
+        if (!cancelled) setWellsWithCoords(withCoordsFromCache);
 
-        const withCoords = [];
-        for (const w of list) {
+        // Geocode remaining wells in the background (progressive enhancement).
+        const pending = list.filter((w) => {
+          const key = (w.location || w.well_name || w.well_id || "").trim().toLowerCase();
+          return !cache[key];
+        });
+        if (!cancelled && pending.length > 0) setGeocoding(true);
+        const newlyResolved = [];
+        for (const w of pending) {
           const locationQuery = w.location || w.well_name || w.well_id;
+          const key = String(locationQuery || "").trim().toLowerCase();
           const coords = await geocode(locationQuery);
           if (cancelled) return;
-          if (coords) {
-            withCoords.push({
-              ...w,
-              lat: coords.lat,
-              lng: coords.lng,
+          if (coords && key) {
+            cache[key] = coords;
+            newlyResolved.push({ ...w, lat: coords.lat, lng: coords.lng });
+            setWellsWithCoords((prev) => {
+              if (prev.some((p) => p.well_id === w.well_id)) return prev;
+              return [...prev, { ...w, lat: coords.lat, lng: coords.lng }];
             });
           }
           await new Promise((r) => setTimeout(r, GEOCODE_DELAY_MS));
         }
-        if (!cancelled) setWellsWithCoords(withCoords);
+        if (!cancelled) {
+          try {
+            localStorage.setItem(GEO_CACHE_KEY, JSON.stringify(cache));
+          } catch {
+            // Ignore storage errors; map still works without cache.
+          }
+          setGeocoding(false);
+        }
       } catch (e) {
         if (!cancelled) setError(e.message || "Failed to load well locations");
       } finally {
@@ -116,6 +149,7 @@ export default function WellLocations() {
     } else {
       map.setView(DEFAULT_CENTER, DEFAULT_ZOOM);
     }
+    setTimeout(() => map.invalidateSize(), 0);
   }, [wellsWithCoords]);
 
   // Destroy map on unmount only
@@ -149,6 +183,7 @@ export default function WellLocations() {
 
         <aside className="wellLocationsList">
           <h3>Wells on map ({wellsWithCoords.length})</h3>
+          {geocoding && <div className="wellLocationsGeocoding">Updating map locations…</div>}
           <ul>
             {wellsWithCoords.map((w) => (
               <li key={w.well_id}>
