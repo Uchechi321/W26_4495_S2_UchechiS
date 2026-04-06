@@ -14,7 +14,10 @@ Configuration (optional, for LLM):
 
 import json
 import os
+import re
 from typing import Dict, Any, List, Optional
+
+from ..config_secrets import get_openai_api_key
 
 try:
     from openai import OpenAI
@@ -55,6 +58,18 @@ def _explicit_reasons_for_level(segment: Dict[str, Any]) -> List[str]:
     elif level == "warning":
         if npt and 0 < npt < 2:
             reasons.append(f"non-productive time recorded ({npt} hours)")
+        if any(
+            k in desc
+            for k in (
+                "torque",
+                "drag",
+                "overpull",
+                "hookload",
+                "hook load",
+                "differential stick",
+            )
+        ):
+            reasons.append("elevated torque/drag, overpull, or mechanical sticking risk noted in the description")
         if "lost circulation" in desc or "circulation" in desc or "loss" in desc:
             if "stuck" not in desc and "kick" not in desc:
                 reasons.append("circulation or loss indication in the report")
@@ -65,6 +80,156 @@ def _explicit_reasons_for_level(segment: Dict[str, Any]) -> List[str]:
     return reasons
 
 
+def _description_sentence_bullets(desc_raw: str, prefix: str, max_items: int = 2) -> List[str]:
+    """First sentence(s) of the report description as distinct bullets (unique per segment when text differs)."""
+    if not desc_raw or not str(desc_raw).strip():
+        return []
+    text = str(desc_raw).strip()
+    parts = re.split(r"(?<=[.!?])\s+", text)
+    out: List[str] = []
+    for p in parts:
+        p = p.strip()
+        if len(p) < 18:
+            continue
+        clipped = p[:240] + ("…" if len(p) > 240 else "")
+        out.append(f"{prefix} {clipped}")
+        if len(out) >= max_items:
+            break
+    return out
+
+
+def _dedupe_preserve_order(items: List[str]) -> List[str]:
+    seen = set()
+    out: List[str] = []
+    for x in items:
+        s = (x or "").strip()
+        if not s or s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
+
+
+def _rule_based_technical_factors(
+    desc_raw: str,
+    desc: str,
+    op_type_raw: str,
+    op_type: str,
+    npt: Any,
+    depth_from: Any,
+    depth_to: Any,
+    level: str,
+) -> List[str]:
+    """Derive technical factors from report description, NPT, operation, and depth — not fixed boilerplate."""
+    factors: List[str] = []
+
+    factors.extend(
+        _description_sentence_bullets(
+            desc_raw,
+            "What the report states for this interval:",
+            max_items=2,
+        )
+    )
+
+    try:
+        npt_f = float(npt) if npt is not None else 0.0
+    except (TypeError, ValueError):
+        npt_f = 0.0
+
+    if npt_f > 0:
+        factors.append(
+            f"NPT attributed here: {npt_f:g} hr over {depth_from}m–{depth_to}m "
+            f"({op_type_raw or 'operation per report'})."
+        )
+
+    if op_type_raw:
+        factors.append(
+            f"Operational context: “{op_type_raw}” in the {depth_from}m–{depth_to}m window."
+        )
+
+    if "stuck" in desc or "stuck pipe" in desc:
+        factors.append("Mechanical sticking risk is called out in the description for this segment.")
+    if "lost circulation" in desc or ("loss" in desc and "circulation" in desc) or "mud loss" in desc:
+        factors.append("Circulation / mud-loss indicators appear in the report text for this depth.")
+    if "kick" in desc or "well control" in desc or "influx" in desc:
+        factors.append("Well control or influx-related wording appears in the description.")
+    if "ream" in op_type or "reaming" in desc:
+        factors.append("Reaming in this interval increases mechanical exposure on the string and wellbore.")
+    if "torque" in desc or "drag" in desc or "overpull" in desc:
+        factors.append("Torque/drag or hookload indicators are mentioned in the report narrative.")
+    if "wash" in desc or "washing" in desc or "hole cleaning" in desc:
+        factors.append("Hole cleaning / washing activity is referenced for this interval.")
+    if "shale" in desc or "swelling" in desc or "sloughing" in desc:
+        factors.append("Formation stability (e.g. shale/sloughing) is referenced in the description.")
+    if "gas" in desc and ("show" in desc or "connection" in desc or "background" in desc):
+        factors.append("Gas indicators in the narrative may relate to pore pressure or permeability at this depth.")
+
+    factors = _dedupe_preserve_order(factors)
+
+    if not factors:
+        factors.append(
+            f"No narrative was stored for this segment; infer context from operation "
+            f"({op_type_raw or 'N/A'}), depth {depth_from}m–{depth_to}m, NPT {npt_f:g} hr, severity {level}."
+        )
+    return factors
+
+
+def _rule_based_prevention_measures(
+    desc_raw: str,
+    desc: str,
+    op_type_raw: str,
+    op_type: str,
+    npt: Any,
+    depth_from: Any,
+    depth_to: Any,
+) -> List[str]:
+    """Prevention steps tied to the same signals as technical factors, not a static trio every time."""
+    measures: List[str] = []
+
+    if desc_raw and str(desc_raw).strip():
+        measures.append(
+            "Use the report narrative above as the primary guide: mitigation should address "
+            f"what was recorded at {depth_from}m–{depth_to}m before repeating similar operations."
+        )
+
+    try:
+        npt_f = float(npt) if npt is not None else 0.0
+    except (TypeError, ValueError):
+        npt_f = 0.0
+
+    if npt_f > 0:
+        measures.append(
+            "Investigate root cause of the recorded NPT for this interval and track whether it recurs on later days."
+        )
+
+    if "stuck" in desc or "stuck pipe" in desc:
+        measures.append(
+            "Reduce differential sticking risk: improve hole cleaning, manage mud weight/ECD, and limit static time in this zone."
+        )
+    if "lost circulation" in desc or ("loss" in desc and "circulation" in desc) or "mud loss" in desc:
+        measures.append(
+            "If losses were an issue: adjust mud program, pump rates, and lost-circulation material strategy for this lithology."
+        )
+    if "kick" in desc or "well control" in desc or "influx" in desc:
+        measures.append(
+            "Well control: verify barriers, trip margins, and monitoring before continuing in the same pressure regime."
+        )
+    if "ream" in op_type or "reaming" in desc:
+        measures.append(
+            "For reaming: review BHA mechanics, reaming parameters, and torque/speed limits at this depth range."
+        )
+    if "torque" in desc or "drag" in desc:
+        measures.append(
+            "Address torque/drag drivers: hole geometry, lubricity, solids loading, and trajectory in this interval."
+        )
+
+    measures.append(
+        f"Document lessons learned from this segment ({depth_from}m–{depth_to}m) in the operational program for offset intervals."
+    )
+
+    return _dedupe_preserve_order(measures)
+
+
 # --- AI-based segment level (color): LLM classifies normal / warning / critical ---
 
 def _try_llm_segment_level(segment: Dict[str, Any]) -> Optional[str]:
@@ -72,7 +237,7 @@ def _try_llm_segment_level(segment: Dict[str, Any]) -> Optional[str]:
     Ask the LLM to classify segment severity. Returns "normal", "warning", or "critical",
     or None if API key missing / call fails / response unparseable.
     """
-    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    api_key = get_openai_api_key()
     if not api_key or not OpenAI:
         return None
     depth_from = segment.get("from") or 0
@@ -83,7 +248,9 @@ def _try_llm_segment_level(segment: Dict[str, Any]) -> Optional[str]:
     desc_short = (desc[:300] + "...") if len(desc) > 300 else desc
     user = (
         "Classify this drilling segment's severity for wellbore display. "
-        "Reply with exactly one word: normal, warning, or critical.\n\n"
+        "Reply with exactly one word: normal, warning, or critical.\n"
+        "Use **warning** or higher if the text describes elevated torque, drag, overpull, hookload, "
+        "mechanical sticking risk, lost circulation, kicks, or well control — not routine values only.\n\n"
         f"Depth: {depth_from}m–{depth_to}m | Operation: {op} | NPT: {npt} hours\n"
         f"Description: {desc_short or '[none]'}"
     )
@@ -117,7 +284,7 @@ def _get_llm_flag_explanation(segment: Dict[str, Any]) -> Optional[str]:
     level = (segment.get("level") or "normal").lower()
     if level not in ("critical", "warning"):
         return None
-    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    api_key = get_openai_api_key()
     if not api_key or not OpenAI:
         return None
     desc = (segment.get("whyItMatters") or "").strip()
@@ -155,7 +322,10 @@ def _get_llm_flag_explanation(segment: Dict[str, Any]) -> Optional[str]:
 
 def _rule_based_segment_level(segment: Dict[str, Any]) -> str:
     """Rule-based fallback when LLM is not used or fails."""
-    npt = segment.get("nptHours") or 0
+    try:
+        npt = float(segment.get("nptHours") or 0)
+    except (TypeError, ValueError):
+        npt = 0.0
     desc = (segment.get("whyItMatters") or "").upper()
     if npt >= 2:
         return "critical"
@@ -164,6 +334,19 @@ def _rule_based_segment_level(segment: Dict[str, Any]) -> str:
     if npt > 0:
         return "warning"
     if "LOST CIRCULATION" in desc or "KICK" in desc or "WELL CONTROL" in desc:
+        return "warning"
+    # Torque / drag / overpull: elevated mechanical loads — warrants at least warning (critical if stuck/NPT rules above)
+    if any(
+        k in desc
+        for k in (
+            "TORQUE",
+            "DRAG",
+            "OVERPULL",
+            "HOOKLOAD",
+            "HOOK LOAD",
+            "DIFFERENTIAL STICK",
+        )
+    ):
         return "warning"
     return "normal"
 
@@ -176,6 +359,11 @@ def classify_segment_level(segment: Dict[str, Any]) -> str:
     level = _try_llm_segment_level(segment)
     if level is not None:
         return level
+    return _rule_based_segment_level(segment)
+
+
+def classify_segment_level_rule_based(segment: Dict[str, Any]) -> str:
+    """Fast severity classification without LLM calls (useful for fleet aggregation)."""
     return _rule_based_segment_level(segment)
 
 
@@ -222,7 +410,9 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
         '"titleSource" (ONE short sentence: how you determined the title; do not repeat the description), '
         '"flaggedReason" (MUST be specific to this segment: in 2–4 sentences, (1) summarize what happened in this segment based on the description — plain language, do not quote verbatim — and (2) state why that led to a critical/warning flag or why it is normal; no fixed template), '
         '"contributingFactors", "similarEventsInHistory", '
-        '"technicalFactors", "preventionMeasures", "methodology". '
+        '"technicalFactors" (array of 2–5 strings; each MUST relate to THIS segment\'s description, operation type, NPT, or depth — never generic filler like "permeability at boundary" unless the description supports it), '
+        '"preventionMeasures" (array of 2–5 strings; each MUST follow logically from what happened in THIS segment), '
+        '"methodology". '
         "Vary your answers by segment: reference this segment's depth, operation, and NPT so analyses are not generic."
     )
     return system, user
@@ -276,7 +466,7 @@ def _try_llm_analysis(segment: Dict[str, Any], context: Dict[str, Any]) -> Optio
     Call OpenAI LLM to generate segment analysis. Returns the analysis dict or None
     if API key is missing, LLM is unavailable, or response is invalid.
     """
-    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    api_key = get_openai_api_key()
     if not api_key or not OpenAI:
         return None
     system, user = _build_llm_prompt(segment, context)
@@ -462,31 +652,13 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
         "offset well data in the same field often shows similar events near formation transitions."
     )
 
-    # --- Technical factors: only those that apply to this segment ---
-    technical_factors: List[str] = []
-    if "stuck" in desc:
-        technical_factors.append("Differential sticking risk (description mentions stuck pipe).")
-    if "circulation" in desc or "loss" in desc:
-        technical_factors.append("Mud loss or circulation issues in this interval.")
-    if "ream" in op_type or "reaming" in desc:
-        technical_factors.append(f"Mechanical stress during reaming at {depth_from}m–{depth_to}m.")
-    technical_factors.extend([
-        "Formation permeability changes at depth boundary.",
-        "Mud cake buildup in permeable zones.",
-        "Tight clearance between drill string and wellbore.",
-    ])
-
-    # --- Prevention measures: tailored to what was done in this segment ---
-    prevention_measures: List[str] = []
-    if "stuck" in desc:
-        prevention_measures.append("Stuck-pipe prevention practices for this formation and depth.")
-    prevention_measures.extend([
-        "Optimize mud weight for overbalance in this depth range.",
-        "Minimize static time in this interval.",
-        "Monitor torque and drag during operations like this one.",
-    ])
-    if "ream" in op_type or "reaming" in desc:
-        prevention_measures.append("Review reaming procedures for this depth range.")
+    # --- Technical factors & prevention: derived from description + depth/NPT/op (no fixed trio) ---
+    technical_factors = _rule_based_technical_factors(
+        desc_raw, desc, op_type_raw, op_type, npt, depth_from, depth_to, level
+    )
+    prevention_measures = _rule_based_prevention_measures(
+        desc_raw, desc, op_type_raw, op_type, npt, depth_from, depth_to
+    )
 
     # --- Methodology (short, no repetition of segment data) ---
     methodology = (
@@ -582,7 +754,7 @@ def _build_maintenance_llm_prompt(equipment_list: List[Dict[str, Any]], context:
 
 
 def _try_llm_maintenance(equipment_list: List[Dict[str, Any]], context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_KEY")
+    api_key = get_openai_api_key()
     if not api_key or not OpenAI:
         return None
     system, user = _build_maintenance_llm_prompt(equipment_list, context)
