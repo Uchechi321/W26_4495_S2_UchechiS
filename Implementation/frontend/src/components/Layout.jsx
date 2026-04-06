@@ -29,6 +29,13 @@ export default function Layout() {
             Well Location
           </NavLink>
 
+          <NavLink
+            to="/assistant"
+            className={({ isActive }) => (isActive ? "navLink active" : "navLink")}
+          >
+            AI Assistant
+          </NavLink>
+
           <NavLink to="/" className="navLink" onClick={() => localStorage.removeItem("auth")}>
             Log out
           </NavLink>

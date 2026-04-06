@@ -5,9 +5,9 @@ import Dashboard from "./pages/Dashboards";
 import Reports from "./pages/Reports";
 import ReportDetail from "./pages/ReportDetail";
 import Maintenance from "./pages/Maintenance";
-import UploadReport from "./pages/UploadReport";
 import SummaryReports from "./pages/SummaryReports";
 import WellLocations from "./pages/WellLocations";
+import AiAssistant from "./pages/AiAssistant";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import EditReport from "./pages/EditReport";
@@ -46,11 +46,12 @@ export default function App() {
           <Route path="/wells/:wellId/report/:reportId" element={<ReportDetail />} />
 
           <Route path="/wells/:wellId/maintenance" element={<Maintenance />} />
-          <Route path="/wells/:wellId/upload" element={<UploadReport />} />
 
           <Route path="/summary-reports" element={<SummaryReports />} />
 
           <Route path="/well-locations" element={<WellLocations />} />
+
+          <Route path="/assistant" element={<AiAssistant />} />
 
           <Route path="/reports/edit/:reportId" element={<EditReport />} />
 
