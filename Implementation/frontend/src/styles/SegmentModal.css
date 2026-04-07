@@ -385,6 +385,50 @@
   border-color: #fed7aa;
 }
 
+.sectionCardMlSummary {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 4px solid #2563eb;
+}
+
+.sectionIconMl {
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.mlSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mlSummaryItem {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #fff;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mlSummaryLabel {
+  font-size: 12px;
+  color: #1e3a8a;
+  font-weight: 700;
+}
+
+.mlSummaryValue {
+  font-size: 18px;
+  color: #0f172a;
+  font-weight: 900;
+}
+
 .sectionIconMethodology {
   background: #ea580c;
   color: white;

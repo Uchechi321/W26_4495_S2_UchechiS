@@ -58,6 +58,14 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
       : "Normal";
 
   const exp = explanationData || segment.explanation;
+  const mlRiskScore =
+    exp?.riskScore != null && Number.isFinite(Number(exp.riskScore))
+      ? Number(exp.riskScore).toFixed(2)
+      : null;
+  const mlPredictedSeverity =
+    typeof exp?.predictedSeverity === "string" && exp.predictedSeverity.trim()
+      ? exp.predictedSeverity
+      : null;
 
   return (
     <div className="modalOverlay" onClick={onClose}>
@@ -205,6 +213,24 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
           <>
             {/* EXPLANATION VIEW (your “3 pictures” screen) */}
             <div className="explanationViewBody">
+              {(mlRiskScore || mlPredictedSeverity) && (
+                <div className="sectionCard sectionCardMlSummary">
+                  <div className="sectionTitleWithIcon">
+                    <span className="sectionIcon sectionIconMl">ML</span>
+                    Model Risk Summary
+                  </div>
+                  <div className="mlSummaryGrid">
+                    <div className="mlSummaryItem">
+                      <span className="mlSummaryLabel">Risk Score</span>
+                      <strong className="mlSummaryValue">{mlRiskScore ?? "N/A"}</strong>
+                    </div>
+                    <div className="mlSummaryItem">
+                      <span className="mlSummaryLabel">Predicted Severity</span>
+                      <strong className="mlSummaryValue">{mlPredictedSeverity ?? "N/A"}</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
               {exp?.titleSource && (
                 <div className="sectionCard sectionCardTitleSource">
                   <div className="sectionTitleWithIcon">
@@ -280,6 +306,15 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
               </div>
               <div className="sectionText">{exp?.methodology ?? "N/A"}</div>
             </div>
+              {(exp?.riskScore != null || exp?.predictedSeverity) && (
+                <div className="sectionCard">
+                  <div className="sectionTitle">ML Risk Prediction</div>
+                  <div className="sectionText">
+                    Risk score: <strong>{exp?.riskScore ?? "N/A"}</strong>{" "}
+                    | Predicted severity: <strong>{exp?.predictedSeverity ?? "N/A"}</strong>
+                  </div>
+                </div>
+              )}
 
             <div className="modalFooter">
               <div className="footerBtns">

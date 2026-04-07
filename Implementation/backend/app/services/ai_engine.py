@@ -18,6 +18,7 @@ import re
 from typing import Dict, Any, List, Optional
 
 from ..config_secrets import get_openai_api_key
+from .ml_model import predict_segment_risk
 
 try:
     from openai import OpenAI
@@ -378,6 +379,9 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
     level = segment.get("level") or "normal"
     desc = (segment.get("whyItMatters") or "").strip()
     recorded_at = segment.get("recordedAt") or ""
+    ml = context.get("ml_result") or {}
+    risk_score = ml.get("riskScore", "N/A")
+    predicted_severity = ml.get("predictedSeverity", "N/A")
 
     equipment = context.get("equipment") or []
     equipment_summary = "None"
@@ -396,6 +400,10 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
         "Return valid JSON only, no markdown or extra text."
     )
     user = (
+        "Machine-learning pre-analysis (heuristic risk model):\n"
+        f"- risk_score: {risk_score}\n"
+        f"- predicted_severity: {predicted_severity}\n\n"
+        "Use these ML signals as additional context, but keep conclusions grounded in the segment report fields.\n\n"
         "Segment data from the drilling report:\n"
         f"- depth_from: {depth_from} m\n"
         f"- depth_to: {depth_to} m\n"
@@ -413,6 +421,7 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
         '"technicalFactors" (array of 2–5 strings; each MUST relate to THIS segment\'s description, operation type, NPT, or depth — never generic filler like "permeability at boundary" unless the description supports it), '
         '"preventionMeasures" (array of 2–5 strings; each MUST follow logically from what happened in THIS segment), '
         '"methodology". '
+        'You may also include optional keys "riskScore" and "predictedSeverity" that align with the ML pre-analysis. '
         "Vary your answers by segment: reference this segment's depth, operation, and NPT so analyses are not generic."
     )
     return system, user
@@ -498,9 +507,15 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
     If OPENAI_API_KEY is set, tries LLM first; otherwise uses rule-based logic.
     """
     context = context or {}
+    ml_result = predict_segment_risk(segment)
+    context["ml_result"] = ml_result
     # Try LLM first when API key is available
     llm_result = _try_llm_analysis(segment, context)
     if llm_result is not None:
+        llm_result["riskScore"] = llm_result.get("riskScore", ml_result["riskScore"])
+        llm_result["predictedSeverity"] = llm_result.get(
+            "predictedSeverity", ml_result["predictedSeverity"]
+        )
         return llm_result
 
     # --- Rule-based fallback (original logic) ---
@@ -677,6 +692,8 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
         "technicalFactors": technical_factors,
         "preventionMeasures": prevention_measures,
         "methodology": methodology,
+        "riskScore": ml_result["riskScore"],
+        "predictedSeverity": ml_result["predictedSeverity"],
     }
 
 
