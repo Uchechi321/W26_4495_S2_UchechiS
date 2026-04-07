@@ -1,16 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../api/client";
 import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
 import "../styles/SegmentModal.css";
 
-export default function SegmentModal({ open, segment, wellId, equipment = [], onClose }) {
+export default function SegmentModal({ open, segment, equipment = [], onClose }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [explanationData, setExplanationData] = useState(null);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
   const [explanationError, setExplanationError] = useState("");
+  const explainAbortRef = useRef(null);
 
-  // reset when modal or segment changes
   useEffect(() => {
+    explainAbortRef.current?.abort();
     if (open) setShowExplanation(false);
     if (!open || !segment) {
       setExplanationData(null);
@@ -20,10 +21,18 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
 
   async function handleViewDetailedExplanation() {
     if (!segment) return;
+    if (explanationData) {
+      setShowExplanation(true);
+      return;
+    }
+
+    explainAbortRef.current?.abort();
+    const controller = new AbortController();
+    explainAbortRef.current = controller;
+
     setLoadingExplanation(true);
     setExplanationError("");
     try {
-      // Use text-only analysis endpoint; send description + segment context so title/depth show correctly
       const res = await apiFetch(`/api/wells/segment-text-analysis`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -35,19 +44,24 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
           npt_hours: segment.nptHours != null ? Number(segment.nptHours) : null,
           level: segment.level ?? null,
         }),
+        signal: controller.signal,
       });
       if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
       const data = await res.json();
-      setExplanationData(data);
-      setShowExplanation(true);
+      if (!controller.signal.aborted) {
+        setExplanationData(data);
+        setShowExplanation(true);
+      }
     } catch (e) {
-      setExplanationError(e.message || "Failed to load explanation");
+      if (e.name === "AbortError") return;
+      if (!controller.signal.aborted) {
+        setExplanationError(e.message || "Failed to load explanation");
+      }
     } finally {
-      setLoadingExplanation(false);
+      if (!controller.signal.aborted) setLoadingExplanation(false);
     }
   }
 
-  // If modal is not open or no segment selected, show nothing
   if (!open || !segment) return null;
 
   const severityText =
@@ -70,14 +84,15 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
   return (
     <div className="modalOverlay" onClick={onClose}>
       <div className="modalCard" onClick={(e) => e.stopPropagation()}>
-        {/* Header: gradient for explanation view, normal for details */}
         {showExplanation && exp ? (
           <div className="explanationViewHeader">
             <div className="explanationViewHeaderInner">
               <h2 className="explanationViewTitle">{exp.title ?? "Detailed Explanation"}</h2>
               <div className="explanationViewDepth">Depth: {exp.depthRange ?? `${segment.from}m - ${segment.to}m`}</div>
             </div>
-            <button type="button" className="explanationViewClose" onClick={onClose} aria-label="Close">✕</button>
+            <button type="button" className="explanationViewClose" onClick={onClose} aria-label="Close">
+              ✕
+            </button>
           </div>
         ) : (
           <div className="modalHeader">
@@ -85,17 +100,19 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
               <div className="modalIcon">⚠️</div>
               <div>
                 <h2 className="modalTitle">Depth Segment Details</h2>
-                <div className="modalSub">{segment.from}m – {segment.to}m</div>
+                <div className="modalSub">
+                  {segment.from}m – {segment.to}m
+                </div>
               </div>
             </div>
-            <button className="modalClose" onClick={onClose}>✕</button>
+            <button className="modalClose" onClick={onClose}>
+              ✕
+            </button>
           </div>
         )}
 
-        {/* ✅ Switch screen based on showExplanation */}
         {!showExplanation ? (
           <>
-            {/* DETAILS VIEW */}
             <div className="modalGrid">
               <div className="detailCard">
                 <div className="detailLabel">Event Type</div>
@@ -105,9 +122,7 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
               <div className="detailCard danger">
                 <div className="detailLabel">NPT Hours</div>
                 <div className="detailValue">
-                  {segment.nptHours !== undefined
-                    ? `${segment.nptHours} hours`
-                    : "N/A"}
+                  {segment.nptHours !== undefined ? `${segment.nptHours} hours` : "N/A"}
                 </div>
               </div>
 
@@ -122,7 +137,6 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
               </div>
             </div>
 
-            {/* Equipment (report-level assembly components) */}
             <div className="sectionCard">
               <div className="sectionTitle">Equipment Involved</div>
 
@@ -166,7 +180,6 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
               )}
             </div>
 
-            {/* Actions */}
             <div className="sectionCard green">
               <div className="sectionTitle">Actions Taken</div>
 
@@ -181,17 +194,13 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
               )}
             </div>
 
-            {/* Why it matters */}
             <div className="sectionCard blue">
               <div className="sectionTitle">Description</div>
               <div className="sectionText">{segment.whyItMatters ?? "N/A"}</div>
             </div>
 
-            {/* Footer */}
             <div className="modalFooter">
-              <div className="recordedAt">
-                Event recorded: {segment.recordedAt ?? "N/A"}
-              </div>
+              <div className="recordedAt">Event recorded: {segment.recordedAt ?? "N/A"}</div>
 
               <div className="footerBtns">
                 <button
@@ -211,8 +220,12 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
           </>
         ) : (
           <>
-            {/* EXPLANATION VIEW (your “3 pictures” screen) */}
             <div className="explanationViewBody">
+              {explanationError && (
+                <div className="explanationError" role="alert">
+                  {explanationError}
+                </div>
+              )}
               {(mlRiskScore || mlPredictedSeverity) && (
                 <div className="sectionCard sectionCardMlSummary">
                   <div className="sectionTitleWithIcon">
@@ -237,9 +250,7 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
                     <span className="sectionIcon sectionIconSource">📌</span>
                     How We Determined This Title
                   </div>
-                  <div className="sectionText">
-                    {exp.titleSource}
-                  </div>
+                  <div className="sectionText">{exp.titleSource}</div>
                 </div>
               )}
               <div className="sectionCard blue explanationWhyCard">
@@ -247,90 +258,77 @@ export default function SegmentModal({ open, segment, wellId, equipment = [], on
                   <span className="sectionIcon sectionIconInfo">!</span>
                   Why Was This Flagged?
                 </div>
-                <div className="sectionText">
-                  {exp?.flaggedReason ?? "No explanation available."}
-                </div>
+                <div className="sectionText">{exp?.flaggedReason ?? "No explanation available."}</div>
               </div>
 
               <h3 className="modalH3">Contributing Factors</h3>
 
-            {(exp?.contributingFactors ?? []).map((f, i) => (
-              <div
-                key={i}
-                className={`factorCard ${f.type === "danger" ? "danger" : "warning"}`}
-              >
-                <div className="factorHeading">
-                  {f.type === "danger" ? (
-                    <span className="factorIcon factorIconDanger">📈</span>
-                  ) : (
-                    <span className="factorIcon factorIconWarning">📍</span>
-                  )}
-                  {f.heading}
-                </div>
-                <div className="factorText">{f.text}</div>
-              </div>
-            ))}
-
-            <div className="sectionCard sectionCardHistory">
-              <div className="sectionTitleWithIcon">
-                <span className="sectionIcon sectionIconHistory">🕐</span>
-                Similar Events in Well History
-              </div>
-              <div className="sectionText">
-                {exp?.similarEventsInHistory ?? "No historical comparison available."}
-              </div>
-            </div>
-
-            <div className="sectionCard">
-              <div className="sectionTitle">Technical Factors Identified</div>
-              <ul className="list">
-                {(exp?.technicalFactors ?? []).map((t, i) => (
-                  <li key={i}>{t}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="sectionCard green sectionCardPrevention">
-              <div className="sectionTitle">Recommended Prevention Measures</div>
-              <ul className="list listWithCheckmarks">
-                {(exp?.preventionMeasures ?? []).map((p, i) => (
-                  <li key={i}><span className="checkmark">✓</span> {p}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="sectionCard sectionCardMethodology">
-              <div className="sectionTitleWithIcon">
-                <span className="sectionIcon sectionIconMethodology">i</span>
-                Analysis Methodology
-              </div>
-              <div className="sectionText">{exp?.methodology ?? "N/A"}</div>
-            </div>
-              {(exp?.riskScore != null || exp?.predictedSeverity) && (
-                <div className="sectionCard">
-                  <div className="sectionTitle">ML Risk Prediction</div>
-                  <div className="sectionText">
-                    Risk score: <strong>{exp?.riskScore ?? "N/A"}</strong>{" "}
-                    | Predicted severity: <strong>{exp?.predictedSeverity ?? "N/A"}</strong>
-                  </div>
-                </div>
-              )}
-
-            <div className="modalFooter">
-              <div className="footerBtns">
-                <button
-                  className="secondaryBtn"
-                  type="button"
-                  onClick={() => setShowExplanation(false)}
+              {(exp?.contributingFactors ?? []).map((f, i) => (
+                <div
+                  key={i}
+                  className={`factorCard ${f.type === "danger" ? "danger" : "warning"}`}
                 >
-                  Back to Details
-                </button>
+                  <div className="factorHeading">
+                    {f.type === "danger" ? (
+                      <span className="factorIcon factorIconDanger">📈</span>
+                    ) : (
+                      <span className="factorIcon factorIconWarning">📍</span>
+                    )}
+                    {f.heading}
+                  </div>
+                  <div className="factorText">{f.text}</div>
+                </div>
+              ))}
 
-                <button className="primaryBtn" type="button" onClick={onClose}>
-                  Close Analysis
-                </button>
+              <div className="sectionCard sectionCardHistory">
+                <div className="sectionTitleWithIcon">
+                  <span className="sectionIcon sectionIconHistory">🕐</span>
+                  Similar Events in Well History
+                </div>
+                <div className="sectionText">
+                  {exp?.similarEventsInHistory ?? "No historical comparison available."}
+                </div>
               </div>
-            </div>
+
+              <div className="sectionCard">
+                <div className="sectionTitle">Technical Factors Identified</div>
+                <ul className="list">
+                  {(exp?.technicalFactors ?? []).map((t, i) => (
+                    <li key={i}>{t}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="sectionCard green sectionCardPrevention">
+                <div className="sectionTitle">Recommended Prevention Measures</div>
+                <ul className="list listWithCheckmarks">
+                  {(exp?.preventionMeasures ?? []).map((p, i) => (
+                    <li key={i}>
+                      <span className="checkmark">✓</span> {p}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="sectionCard sectionCardMethodology">
+                <div className="sectionTitleWithIcon">
+                  <span className="sectionIcon sectionIconMethodology">i</span>
+                  Analysis Methodology
+                </div>
+                <div className="sectionText">{exp?.methodology ?? "N/A"}</div>
+              </div>
+
+              <div className="modalFooter">
+                <div className="footerBtns">
+                  <button className="secondaryBtn" type="button" onClick={() => setShowExplanation(false)}>
+                    Back to Details
+                  </button>
+
+                  <button className="primaryBtn" type="button" onClick={onClose}>
+                    Close Analysis
+                  </button>
+                </div>
+              </div>
             </div>
           </>
         )}

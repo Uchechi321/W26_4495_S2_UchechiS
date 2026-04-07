@@ -50,14 +50,31 @@ def compute_risk_score(segment: Dict[str, Any]) -> float:
 def classify_severity_from_score(score: float) -> str:
     if score < 0.30:
         return "Low"
-    if score < 0.70:
+    if score < 0.50:
         return "Medium"
     return "High"
 
 
+def _force_high_from_signals(segment: Dict[str, Any]) -> bool:
+    npt = _to_float(segment.get("nptHours", segment.get("npt_hours", 0.0)))
+    if npt > 5.0:
+        return True
+
+    desc = str(segment.get("whyItMatters", segment.get("description", "")) or "").lower()
+    force_high_terms = (
+        "stuck pipe",
+        "stuck",
+        "kick",
+        "well control",
+        "fluid loss",
+        "lost circulation",
+    )
+    return any(term in desc for term in force_high_terms)
+
+
 def predict_segment_risk(segment: Dict[str, Any]) -> Dict[str, Any]:
     score = compute_risk_score(segment)
-    severity = classify_severity_from_score(score)
+    severity = "High" if _force_high_from_signals(segment) else classify_severity_from_score(score)
     return {
         "riskScore": score,
         "predictedSeverity": severity,

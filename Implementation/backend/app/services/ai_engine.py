@@ -420,7 +420,11 @@ def _build_llm_prompt(segment: Dict[str, Any], context: Dict[str, Any]) -> tuple
         '"contributingFactors", "similarEventsInHistory", '
         '"technicalFactors" (array of 2–5 strings; each MUST relate to THIS segment\'s description, operation type, NPT, or depth — never generic filler like "permeability at boundary" unless the description supports it), '
         '"preventionMeasures" (array of 2–5 strings; each MUST follow logically from what happened in THIS segment), '
-        '"methodology". '
+        '"methodology" (2–4 sentences, plain language: explain that this segment\'s severity band and risk score come from '
+        "the app's scoring rules applied to NPT hours, depth span, operation type, and wording in the report description; "
+        "that titles, flagged reasons, contributing factors, and prevention items are written to reflect those same parsed "
+        "report fields (plus equipment summary if shown). Do not say generic phrases like \"the AI decided\" or "
+        '"black-box machine learning"; name the kinds of data used. '
         'You may also include optional keys "riskScore" and "predictedSeverity" that align with the ML pre-analysis. '
         "Vary your answers by segment: reference this segment's depth, operation, and NPT so analyses are not generic."
     )
@@ -499,26 +503,31 @@ def _try_llm_analysis(segment: Dict[str, Any], context: Dict[str, Any]) -> Optio
         return None
 
 
-def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> Dict[str, Any]:
+def analyze_segment(
+    segment: Dict[str, Any],
+    context: Dict[str, Any] = None,
+    use_llm: bool = True,
+) -> Dict[str, Any]:
     """
     Analyze a depth segment and return a structured explanation of why it was
     flagged (e.g. red critical), based on operation type, description, NPT, and context.
     Every conclusion cites the exact report fields used (description, operation type, NPT, depth).
-    If OPENAI_API_KEY is set, tries LLM first; otherwise uses rule-based logic.
+    If use_llm is True and OPENAI_API_KEY is set, tries LLM first; otherwise uses rule-based logic.
+    When use_llm is False, only rule-based logic runs (fast path for SegmentModal).
     """
     context = context or {}
     ml_result = predict_segment_risk(segment)
     context["ml_result"] = ml_result
-    # Try LLM first when API key is available
-    llm_result = _try_llm_analysis(segment, context)
-    if llm_result is not None:
-        llm_result["riskScore"] = llm_result.get("riskScore", ml_result["riskScore"])
-        llm_result["predictedSeverity"] = llm_result.get(
-            "predictedSeverity", ml_result["predictedSeverity"]
-        )
-        return llm_result
+    if use_llm:
+        llm_result = _try_llm_analysis(segment, context)
+        if llm_result is not None:
+            llm_result["riskScore"] = llm_result.get("riskScore", ml_result["riskScore"])
+            llm_result["predictedSeverity"] = llm_result.get(
+                "predictedSeverity", ml_result["predictedSeverity"]
+            )
+            return llm_result
 
-    # --- Rule-based fallback (original logic) ---
+    # --- Rule-based (and optional small LLM assist for flaggedReason only if use_llm) ---
     desc_raw = (segment.get("whyItMatters") or "").strip()
     desc = desc_raw.lower()
     op_type_raw = (segment.get("operationType") or segment.get("eventType") or "").strip()
@@ -578,8 +587,10 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
             "It is classified as normal, so no critical or warning event title was applied."
         )
 
-    # --- Why was this flagged? Prefer LLM explanation that reads the description and explains what happened ---
-    llm_flag_explanation = _get_llm_flag_explanation(segment) if level in ("critical", "warning") else None
+    # --- Why was this flagged? Optional LLM assist only when use_llm (slow); modal uses use_llm=False ---
+    llm_flag_explanation = (
+        _get_llm_flag_explanation(segment) if use_llm and level in ("critical", "warning") else None
+    )
     if level in ("critical", "warning"):
         if llm_flag_explanation:
             flagged_reason = llm_flag_explanation
@@ -675,11 +686,14 @@ def analyze_segment(segment: Dict[str, Any], context: Dict[str, Any] = None) -> 
         desc_raw, desc, op_type_raw, op_type, npt, depth_from, depth_to
     )
 
-    # --- Methodology (short, no repetition of segment data) ---
+    # --- Methodology (matches actual pipeline: ML risk + report-grounded narrative) ---
     methodology = (
-        "This analysis uses the segment's depth interval, operation type, NPT hours, and description from the report. "
-        "Segment severity (wellbore color) is set by AI when available, otherwise by rule-based logic; "
-        "the title and flagged explanation match that same level. Contributing factors and recommendations are derived from the report fields."
+        "Segment color and displayed severity follow the application risk model: a weighted score from NPT hours, "
+        "the depth interval length, operation type, and key phrases in the report description (for example losses, "
+        "mechanical indicators, or well-control wording), with fixed rules for very high NPT. "
+        "The narrative sections—title, why it was flagged, contributing factors, technical factors, and prevention "
+        "measures—are built from the same parsed report fields (depth, operation, NPT, description text), not from "
+        "invented downhole data."
     )
 
     return {

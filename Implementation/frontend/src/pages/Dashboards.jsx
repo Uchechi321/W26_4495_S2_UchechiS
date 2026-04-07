@@ -20,6 +20,8 @@ import KpiModal from "../components/KpiModal";
 import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
 import "../styles/Dashboards.css";
 
+const DASHBOARD_TIMEOUT_MS = 12000;
+
 export default function Dashboard() {
   const { wellId } = useParams();
   const navigate = useNavigate();
@@ -35,13 +37,47 @@ export default function Dashboard() {
       setLoading(true);
       setError("");
 
+      const fetchWithTimeout = async (url) => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), DASHBOARD_TIMEOUT_MS);
+        try {
+          const res = await apiFetch(url, { signal: controller.signal });
+          return res;
+        } finally {
+          clearTimeout(timeout);
+        }
+      };
+
       try {
-        const res = await apiFetch(`/api/wells/${wellId}/dashboard`);
-        if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-        const data = await res.json();
+        // Primary path: full dashboard (may use AI level classification)
+        let res = await fetchWithTimeout(`/api/wells/${wellId}/dashboard`);
+
+        // Fallback path: faster rule-based severity if AI-level path stalls/fails
+        if (!res.ok) {
+          throw new Error(`Backend error: ${res.status}`);
+        }
+
+        let data = await res.json();
+        if (!data || !Array.isArray(data.segments)) {
+          res = await fetchWithTimeout(`/api/wells/${wellId}/dashboard?use_ai_level=false`);
+          if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+          data = await res.json();
+        }
         setDash(data);
       } catch (e) {
-        setError(e.message || "Failed to load dashboard");
+        const isAbort = e?.name === "AbortError";
+        if (isAbort) {
+          try {
+            const fallbackRes = await fetchWithTimeout(`/api/wells/${wellId}/dashboard?use_ai_level=false`);
+            if (!fallbackRes.ok) throw new Error(`Backend error: ${fallbackRes.status}`);
+            const fallbackData = await fallbackRes.json();
+            setDash(fallbackData);
+          } catch (fallbackErr) {
+            setError(fallbackErr.message || "Failed to load dashboard");
+          }
+        } else {
+          setError(e.message || "Failed to load dashboard");
+        }
       } finally {
         setLoading(false);
       }
@@ -512,7 +548,6 @@ export default function Dashboard() {
       <SegmentModal
         open={!!selectedSegment}
         segment={selectedSegment}
-        wellId={wellId}
         equipment={selectedSegment?.report_id != null ? (dash.equipmentByReport?.[String(selectedSegment.report_id)] ?? []) : []}
         onClose={() => setSelectedSegment(null)}
       />

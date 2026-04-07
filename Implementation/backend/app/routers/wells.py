@@ -14,6 +14,7 @@ from ..services.ai_engine import (
     classify_segment_level,
     classify_segment_level_rule_based,
 )
+from ..services.ml_model import predict_segment_risk
 from ..models.well import Well
 from ..models.operation import Operation
 from ..models.daily_report import DailyReport
@@ -22,6 +23,15 @@ from ..models.event import Event
 from ..models.mud import MudProperties
 
 router = APIRouter(prefix="/wells", tags=["Wells"])
+
+
+def _level_from_ml_severity(predicted_severity: str) -> str:
+    sev = (predicted_severity or "").strip().lower()
+    if sev == "high":
+        return "critical"
+    if sev == "medium":
+        return "warning"
+    return "normal"
 
 def get_db():
     db = SessionLocal()
@@ -218,11 +228,12 @@ def get_well_dashboard(
             "recordedAt": report_date.isoformat() if report_date else None,
             "report_id": o.report_id,
         }
-        seg["level"] = (
-            classify_segment_level(seg)
-            if use_ai_level
-            else classify_segment_level_rule_based(seg)
-        )
+        # Use ML risk model as the single source for segment color/severity so
+        # risk_score and displayed severity always align.
+        ml_result = predict_segment_risk(seg)
+        seg["riskScore"] = ml_result["riskScore"]
+        seg["predictedSeverity"] = ml_result["predictedSeverity"]
+        seg["level"] = _level_from_ml_severity(ml_result["predictedSeverity"])
         segments.append(seg)
 
     equipment_by_report = {}
@@ -327,7 +338,8 @@ def analyze_segment_text(body: TextAnalysisRequest):
         "whyItMatters": body.text,
         "recordedAt": None,
     }
-    return analyze_segment(segment, context={})
+    # Fast rule-based analysis only — no LLM round-trip so the modal opens with full content immediately.
+    return analyze_segment(segment, context={}, use_llm=False)
 
 
 @router.get("/{well_id}/maintenance")
