@@ -40,7 +40,9 @@ This section explains how to install and run the project on your machine, includ
    - Create:
      py -3.12 -m venv venv
    - Activate (Windows):
-     venv\Scripts\activate
+     venv312\Scripts\activate
+     If PowerShell blocks npm scripts, allow them for this session(run this below):
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    - Activate (macOS/Linux):
      source venv/bin/activate
 
