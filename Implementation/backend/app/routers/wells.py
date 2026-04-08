@@ -283,13 +283,14 @@ def get_well_segments(
 
     if lite:
         ops = (
-            db.query(Operation)
+            db.query(Operation, DailyReport.report_date)
+            .join(DailyReport, DailyReport.report_id == Operation.report_id)
             .filter(Operation.well_id == well_id)
             .order_by(Operation.depth_from.asc())
             .all()
         )
         segments = []
-        for o in ops:
+        for o, report_date in ops:
             seg = {
                 "from": o.depth_from,
                 "to": o.depth_to,
@@ -298,7 +299,7 @@ def get_well_segments(
                 # Keep description available for SegmentModal immediately.
                 "whyItMatters": o.description,
                 "nptHours": o.npt_hours,
-                "recordedAt": None,
+                "recordedAt": report_date.isoformat() if report_date else None,
                 "report_id": o.report_id,
             }
             seg["level"] = classify_segment_level_rule_based(seg)
