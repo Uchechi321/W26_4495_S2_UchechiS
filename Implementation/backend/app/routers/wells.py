@@ -198,7 +198,6 @@ def get_wells_summary(
 def get_well_dashboard(
     well_id: str,
     include_equipment: bool = True,
-    use_ai_level: bool = True,
     db: Session = Depends(get_db),
     user_email: str = Depends(require_user_email),
 ):
@@ -213,7 +212,7 @@ def get_well_dashboard(
         .all()
     )
 
-    # Build "segments" from operations. For fleet pages, use_ai_level=False avoids per-segment LLM calls.
+    # Build "segments" from operations; risk uses ML/heuristic (predict_segment_risk).
     segments = []
     ops = []
     for o, report_date in ops_with_dates:
@@ -312,7 +311,10 @@ def get_segment_analysis(
 
 
 @router.post("/segment-text-analysis")
-def analyze_segment_text(body: TextAnalysisRequest):
+def analyze_segment_text(
+    body: TextAnalysisRequest,
+    use_llm: bool = False,
+):
     """
     Analyze free-text from a segment description (e.g. the 'Description' section text)
     and return the same structured explanation used by SegmentModal:
@@ -327,6 +329,9 @@ def analyze_segment_text(body: TextAnalysisRequest):
 
     Optional depth_from, depth_to, operation_type, npt_hours, level allow the
     response title and depth range to show real segment context instead of 0m - 0m.
+
+    Default use_llm=false returns immediately using the same rule-based + ML-risk pipeline
+    as the rest of the app (no OpenAI round-trip). Pass use_llm=true for slower LLM prose.
     """
     segment = {
         "from": body.depth_from,
@@ -338,8 +343,7 @@ def analyze_segment_text(body: TextAnalysisRequest):
         "whyItMatters": body.text,
         "recordedAt": None,
     }
-    # Fast rule-based analysis only — no LLM round-trip so the modal opens with full content immediately.
-    return analyze_segment(segment, context={}, use_llm=False)
+    return analyze_segment(segment, context={}, use_llm=use_llm)
 
 
 @router.get("/{well_id}/maintenance")

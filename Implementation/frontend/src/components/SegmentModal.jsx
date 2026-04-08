@@ -3,6 +3,25 @@ import { apiFetch } from "../api/client";
 import { getSegmentEventTypeLabel } from "../utils/segmentEventType";
 import "../styles/SegmentModal.css";
 
+function buildExplanationPreview(seg) {
+  const from = seg?.from;
+  const to = seg?.to;
+  const depthRange =
+    from != null && to != null ? `${from}m - ${to}m` : `${from ?? 0}m - ${to ?? 0}m`;
+  return {
+    title: "Detailed Explanation",
+    depthRange,
+    flaggedReason: "",
+    contributingFactors: [],
+    similarEventsInHistory: "",
+    technicalFactors: [],
+    preventionMeasures: [],
+    methodology: "",
+    riskScore: seg?.riskScore,
+    predictedSeverity: seg?.predictedSeverity,
+  };
+}
+
 export default function SegmentModal({ open, segment, equipment = [], onClose }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [explanationData, setExplanationData] = useState(null);
@@ -10,56 +29,60 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
   const [explanationError, setExplanationError] = useState("");
   const explainAbortRef = useRef(null);
 
+  // Prefetch structured analysis as soon as the segment modal opens (fast rule-based API),
+  // so "View Detailed Explanation" usually shows content immediately.
   useEffect(() => {
     explainAbortRef.current?.abort();
-    if (open) setShowExplanation(false);
     if (!open || !segment) {
       setExplanationData(null);
       setExplanationError("");
-    }
-  }, [open, segment]);
-
-  async function handleViewDetailedExplanation() {
-    if (!segment) return;
-    if (explanationData) {
-      setShowExplanation(true);
+      setLoadingExplanation(false);
       return;
     }
 
-    explainAbortRef.current?.abort();
+    setShowExplanation(false);
     const controller = new AbortController();
     explainAbortRef.current = controller;
-
-    setLoadingExplanation(true);
+    setExplanationData(null);
     setExplanationError("");
-    try {
-      const res = await apiFetch(`/api/wells/segment-text-analysis`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          text: segment.whyItMatters ?? "",
-          depth_from: segment.from != null ? Number(segment.from) : null,
-          depth_to: segment.to != null ? Number(segment.to) : null,
-          operation_type: segment.operationType ?? segment.eventType ?? null,
-          npt_hours: segment.nptHours != null ? Number(segment.nptHours) : null,
-          level: segment.level ?? null,
-        }),
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
-      const data = await res.json();
-      if (!controller.signal.aborted) {
-        setExplanationData(data);
-        setShowExplanation(true);
+    setLoadingExplanation(true);
+
+    (async () => {
+      try {
+        const res = await apiFetch(`/api/wells/segment-text-analysis`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text: segment.whyItMatters ?? "",
+            depth_from: segment.from != null ? Number(segment.from) : null,
+            depth_to: segment.to != null ? Number(segment.to) : null,
+            operation_type: segment.operationType ?? segment.eventType ?? null,
+            npt_hours: segment.nptHours != null ? Number(segment.nptHours) : null,
+            level: segment.level ?? null,
+          }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(await res.text() || `Error ${res.status}`);
+        const data = await res.json();
+        if (!controller.signal.aborted) {
+          setExplanationData(data);
+        }
+      } catch (e) {
+        if (e.name === "AbortError") return;
+        if (!controller.signal.aborted) {
+          setExplanationError(e.message || "Failed to load explanation");
+        }
+      } finally {
+        if (!controller.signal.aborted) setLoadingExplanation(false);
       }
-    } catch (e) {
-      if (e.name === "AbortError") return;
-      if (!controller.signal.aborted) {
-        setExplanationError(e.message || "Failed to load explanation");
-      }
-    } finally {
-      if (!controller.signal.aborted) setLoadingExplanation(false);
-    }
+    })();
+
+    return () => controller.abort();
+  }, [open, segment]);
+
+  function handleViewDetailedExplanation() {
+    if (!segment) return;
+    setShowExplanation(true);
   }
 
   if (!open || !segment) return null;
@@ -71,7 +94,11 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
       ? "Warning"
       : "Normal";
 
-  const exp = explanationData || segment.explanation;
+  const exp =
+    explanationData ||
+    (showExplanation ? buildExplanationPreview(segment) : null) ||
+    segment.explanation;
+  const isExplanationLoading = loadingExplanation && !explanationData;
   const mlRiskScore =
     exp?.riskScore != null && Number.isFinite(Number(exp.riskScore))
       ? Number(exp.riskScore).toFixed(2)
@@ -84,11 +111,14 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
   return (
     <div className="modalOverlay" onClick={onClose}>
       <div className="modalCard" onClick={(e) => e.stopPropagation()}>
-        {showExplanation && exp ? (
+        {showExplanation ? (
           <div className="explanationViewHeader">
             <div className="explanationViewHeaderInner">
               <h2 className="explanationViewTitle">{exp.title ?? "Detailed Explanation"}</h2>
               <div className="explanationViewDepth">Depth: {exp.depthRange ?? `${segment.from}m - ${segment.to}m`}</div>
+              {isExplanationLoading && (
+                <div className="explanationLoadingHint">Loading full analysis...</div>
+              )}
             </div>
             <button type="button" className="explanationViewClose" onClick={onClose} aria-label="Close">
               ✕
@@ -207,9 +237,8 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                   className="primaryBtn"
                   type="button"
                   onClick={handleViewDetailedExplanation}
-                  disabled={loadingExplanation}
                 >
-                  {loadingExplanation ? "Loading…" : "View Detailed Explanation"}
+                  View Detailed Explanation
                 </button>
 
                 <button className="secondaryBtn" type="button" onClick={onClose}>
@@ -258,12 +287,22 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                   <span className="sectionIcon sectionIconInfo">!</span>
                   Why Was This Flagged?
                 </div>
-                <div className="sectionText">{exp?.flaggedReason ?? "No explanation available."}</div>
+                <div className="sectionText">
+                  {isExplanationLoading
+                    ? "Generating explanation from report details..."
+                    : exp?.flaggedReason ?? "No explanation available."}
+                </div>
               </div>
 
               <h3 className="modalH3">Contributing Factors</h3>
 
-              {(exp?.contributingFactors ?? []).map((f, i) => (
+              {isExplanationLoading && (exp?.contributingFactors ?? []).length === 0 ? (
+                <div className="factorCard warning">
+                  <div className="factorHeading">Loading factors...</div>
+                  <div className="factorText">Analyzing depth, NPT, operation, and description.</div>
+                </div>
+              ) : (
+              (exp?.contributingFactors ?? []).map((f, i) => (
                 <div
                   key={i}
                   className={`factorCard ${f.type === "danger" ? "danger" : "warning"}`}
@@ -278,7 +317,7 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                   </div>
                   <div className="factorText">{f.text}</div>
                 </div>
-              ))}
+              )))}
 
               <div className="sectionCard sectionCardHistory">
                 <div className="sectionTitleWithIcon">
@@ -286,28 +325,38 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                   Similar Events in Well History
                 </div>
                 <div className="sectionText">
-                  {exp?.similarEventsInHistory ?? "No historical comparison available."}
+                  {isExplanationLoading
+                    ? "Preparing history comparison..."
+                    : exp?.similarEventsInHistory ?? "No historical comparison available."}
                 </div>
               </div>
 
               <div className="sectionCard">
                 <div className="sectionTitle">Technical Factors Identified</div>
-                <ul className="list">
-                  {(exp?.technicalFactors ?? []).map((t, i) => (
-                    <li key={i}>{t}</li>
-                  ))}
-                </ul>
+                {isExplanationLoading ? (
+                  <div className="sectionText">Extracting technical factors...</div>
+                ) : (
+                  <ul className="list">
+                    {(exp?.technicalFactors ?? []).map((t, i) => (
+                      <li key={i}>{t}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="sectionCard green sectionCardPrevention">
                 <div className="sectionTitle">Recommended Prevention Measures</div>
-                <ul className="list listWithCheckmarks">
-                  {(exp?.preventionMeasures ?? []).map((p, i) => (
-                    <li key={i}>
-                      <span className="checkmark">✓</span> {p}
-                    </li>
-                  ))}
-                </ul>
+                {isExplanationLoading ? (
+                  <div className="sectionText">Preparing prevention measures...</div>
+                ) : (
+                  <ul className="list listWithCheckmarks">
+                    {(exp?.preventionMeasures ?? []).map((p, i) => (
+                      <li key={i}>
+                        <span className="checkmark">✓</span> {p}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="sectionCard sectionCardMethodology">
@@ -315,7 +364,9 @@ export default function SegmentModal({ open, segment, equipment = [], onClose })
                   <span className="sectionIcon sectionIconMethodology">i</span>
                   Analysis Methodology
                 </div>
-                <div className="sectionText">{exp?.methodology ?? "N/A"}</div>
+                <div className="sectionText">
+                  {isExplanationLoading ? "Loading methodology..." : exp?.methodology ?? "N/A"}
+                </div>
               </div>
 
               <div className="modalFooter">

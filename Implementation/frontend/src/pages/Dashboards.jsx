@@ -49,26 +49,17 @@ export default function Dashboard() {
       };
 
       try {
-        // Primary path: full dashboard (may use AI level classification)
         let res = await fetchWithTimeout(`/api/wells/${wellId}/dashboard`);
-
-        // Fallback path: faster rule-based severity if AI-level path stalls/fails
         if (!res.ok) {
           throw new Error(`Backend error: ${res.status}`);
         }
-
-        let data = await res.json();
-        if (!data || !Array.isArray(data.segments)) {
-          res = await fetchWithTimeout(`/api/wells/${wellId}/dashboard?use_ai_level=false`);
-          if (!res.ok) throw new Error(`Backend error: ${res.status}`);
-          data = await res.json();
-        }
+        const data = await res.json();
         setDash(data);
       } catch (e) {
         const isAbort = e?.name === "AbortError";
         if (isAbort) {
           try {
-            const fallbackRes = await fetchWithTimeout(`/api/wells/${wellId}/dashboard?use_ai_level=false`);
+            const fallbackRes = await fetchWithTimeout(`/api/wells/${wellId}/dashboard`);
             if (!fallbackRes.ok) throw new Error(`Backend error: ${fallbackRes.status}`);
             const fallbackData = await fallbackRes.json();
             setDash(fallbackData);

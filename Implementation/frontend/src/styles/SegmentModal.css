@@ -304,6 +304,12 @@
   opacity: 0.95;
 }
 
+.explanationLoadingHint {
+  margin-top: 8px;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
 .explanationViewClose {
   background: transparent;
   border: none;

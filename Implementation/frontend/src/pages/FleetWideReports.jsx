@@ -103,7 +103,7 @@ export default function FleetWideReports() {
             const dTimeout = setTimeout(() => dController.abort(), 15000);
             try {
               const r = await apiFetch(
-                `/api/wells/${w.well_id}/dashboard?include_equipment=false&use_ai_level=false`,
+                `/api/wells/${w.well_id}/dashboard?include_equipment=false`,
                 { signal: dController.signal }
               );
               if (!r.ok) return { wellSummary: w, dashboard: null };
