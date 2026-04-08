@@ -32,9 +32,8 @@ This section explains how to install and run the project on your machine, includ
    - Check if you have installed python using: py --version
    - If you have not installed python, download Python 3.12 from the official website: https://www.python.org/downloads/
    - During installation, check:
-      -       Add Python to PATH
+      - Add Python to PATH
       - Ensure pip and venv are selected
-      ⚠️ Python 3.14 is not supported — use Python 3.12.
 
 3. Create and Activate a Virtual Environment:
    - Create:
@@ -47,8 +46,8 @@ This section explains how to install and run the project on your machine, includ
      source venv/bin/activate
 
 4. Install Dependencies:
-   pip install --upgrade pip
-   pip install -r requirements.txt
+   -pip install --upgrade pip
+   -pip install -r requirements.txt
 
 5. Run the Backend Server:
    uvicorn app.main:app --reload
