@@ -1,9 +1,10 @@
-from typing import Optional
+from typing import Dict, Optional, Tuple
 import re
+import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from ..database import SessionLocal
@@ -23,6 +24,8 @@ from ..models.event import Event
 from ..models.mud import MudProperties
 
 router = APIRouter(prefix="/wells", tags=["Wells"])
+_SUMMARY_CACHE: Dict[Tuple[str, int, int], Tuple[float, list]] = {}
+_SUMMARY_CACHE_TTL_SEC = 30.0
 
 
 def _level_from_ml_severity(predicted_severity: str) -> str:
@@ -158,39 +161,87 @@ def delete_well(
 
 @router.get("/summary")
 def get_wells_summary(
+    page: int = 1,
+    limit: int = 10,
     db: Session = Depends(get_db),
     user_email: str = Depends(require_user_email),
 ):
     """Return per-well summary (KPIs + report count) for the Summary Reports page."""
+    page = max(1, int(page or 1))
+    limit = max(1, min(int(limit or 10), 50))
     me = normalize_email(user_email)
-    wells = db.query(Well).filter(func.lower(Well.owner_email) == me).all()
+    cache_key = (me, page, limit)
+    now = time.time()
+    cached = _SUMMARY_CACHE.get(cache_key)
+    if cached and (now - cached[0]) < _SUMMARY_CACHE_TTL_SEC:
+        return cached[1]
+
+    wells = (
+        db.query(Well)
+        .filter(func.lower(Well.owner_email) == me)
+        .order_by(Well.well_id.asc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    if not wells:
+        _SUMMARY_CACHE[cache_key] = (now, [])
+        return []
+
+    well_ids = [w.well_id for w in wells]
+    report_counts = dict(
+        db.query(DailyReport.well_id, func.count(DailyReport.report_id))
+        .filter(DailyReport.well_id.in_(well_ids))
+        .group_by(DailyReport.well_id)
+        .all()
+    )
+    op_stats_rows = (
+        db.query(
+            Operation.well_id,
+            func.count(Operation.operation_id).label("event_count"),
+            func.coalesce(func.sum(Operation.npt_hours), 0).label("npt_hours"),
+            func.coalesce(func.max(Operation.depth_to), 0).label("depth_max"),
+            func.sum(case((func.coalesce(Operation.npt_hours, 0) >= 2, 1), else_=0)).label("critical_events"),
+            func.sum(case((func.coalesce(Operation.npt_hours, 0) > 0, 1), else_=0)).label("high_risk_zones"),
+        )
+        .filter(Operation.well_id.in_(well_ids))
+        .group_by(Operation.well_id)
+        .all()
+    )
+    op_stats = {
+        row.well_id: {
+            "eventCount": int(row.event_count or 0),
+            "nptHours": round(float(row.npt_hours or 0), 2),
+            "depthMax": float(row.depth_max or 0),
+            "criticalEvents": int(row.critical_events or 0),
+            "highRiskZones": int(row.high_risk_zones or 0),
+        }
+        for row in op_stats_rows
+    }
+
     result = []
     for w in wells:
-        report_count = db.query(DailyReport).filter(DailyReport.well_id == w.well_id).count()
-        ops = (
-            db.query(Operation)
-            .filter(Operation.well_id == w.well_id)
-            .all()
+        s = op_stats.get(
+            w.well_id,
+            {"eventCount": 0, "nptHours": 0.0, "depthMax": 0.0, "criticalEvents": 0, "highRiskZones": 0},
         )
-        total_npt = sum(o.npt_hours or 0 for o in ops)
-        depth_max = max((o.depth_to or 0 for o in ops), default=0)
-        critical = sum(1 for o in ops if (o.npt_hours or 0) >= 2)
-        high_risk = sum(1 for o in ops if (o.npt_hours or 0) > 0)
+        total_npt = s["nptHours"]
         maintenance_risk = "Low" if total_npt == 0 else "Medium" if total_npt < 5 else "High"
         result.append({
             "well_id": w.well_id,
             "well_name": w.well_name,
             "location": w.location,
-            "report_count": report_count,
+            "report_count": int(report_counts.get(w.well_id, 0)),
             "kpis": {
-                "depthMax": depth_max,
-                "nptHours": round(total_npt, 2),
-                "eventCount": len(ops),
-                "criticalEvents": critical,
-                "highRiskZones": high_risk,
+                "depthMax": s["depthMax"],
+                "nptHours": total_npt,
+                "eventCount": s["eventCount"],
+                "criticalEvents": s["criticalEvents"],
+                "highRiskZones": s["highRiskZones"],
                 "maintenanceRisk": maintenance_risk,
             },
         })
+    _SUMMARY_CACHE[cache_key] = (now, result)
     return result
 
 

@@ -74,11 +74,14 @@ function toCSV(rows) {
   return lines.join("\r\n");
 }
 
+function ChartNoData({ text }) {
+  return <div className="summaryEmpty" style={{ padding: 16 }}>{text}</div>;
+}
+
 export default function FleetWideReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [summaryWells, setSummaryWells] = useState([]);
-  const [dashboardsLoading, setDashboardsLoading] = useState(false);
   const [wellDashboards, setWellDashboards] = useState([]); // [{ wellSummary, dashboard }]
 
   useEffect(() => {
@@ -89,7 +92,7 @@ export default function FleetWideReports() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 20000);
-        const res = await apiFetch("/api/wells/summary", { signal: controller.signal });
+        const res = await apiFetch("/api/wells/summary?page=1&limit=10", { signal: controller.signal });
         clearTimeout(timeoutId);
         if (!res.ok) throw new Error(`Failed to load fleet summary: ${res.status}`);
         const summary = await res.json();
@@ -97,43 +100,26 @@ export default function FleetWideReports() {
 
         if (cancelled) return;
         setSummaryWells(wells);
-        setLoading(false);
-
         const activeWells = wells.filter((w) => (w.report_count ?? 0) > 0);
-        setDashboardsLoading(true);
         const dashboards = await Promise.allSettled(
           activeWells.map(async (w) => {
-            // Per-well timeout so one slow dashboard call doesn't block the whole fleet page.
-            const dController = new AbortController();
-            const dTimeout = setTimeout(() => dController.abort(), 15000);
-            try {
-              const r = await apiFetch(
-                `/api/wells/${w.well_id}/dashboard?include_equipment=false`,
-                { signal: dController.signal }
-              );
-              if (!r.ok) return { wellSummary: w, dashboard: null };
-              const dash = await r.json();
-              return { wellSummary: w, dashboard: dash };
-            } catch {
-              return { wellSummary: w, dashboard: null };
-            } finally {
-              clearTimeout(dTimeout);
-            }
+            const r = await apiFetch(`/api/wells/${w.well_id}/dashboard?include_equipment=false`);
+            if (!r.ok) return { wellSummary: w, dashboard: null };
+            const dash = await r.json();
+            return { wellSummary: w, dashboard: dash };
           })
         );
-
         if (cancelled) return;
-        const resolvedDashboards = dashboards
+        const resolved = dashboards
           .map((x) => (x.status === "fulfilled" ? x.value : null))
           .filter((x) => x && x.dashboard);
-        setWellDashboards(resolvedDashboards);
+        setWellDashboards(resolved);
       } catch (e) {
         if (cancelled) return;
         setError(e?.message || "Failed to load fleet reports");
       } finally {
         if (!cancelled) {
           setLoading(false);
-          setDashboardsLoading(false);
         }
       }
     }
@@ -177,6 +163,60 @@ export default function FleetWideReports() {
     const nptByDate = Object.entries(nptByDateMap)
       .map(([date, hours]) => ({ date, hours }))
       .sort((a, b) => a.date.localeCompare(b.date));
+    if (!hasDetailedDashboards) {
+      const wellNptComparison = summaryWells.map((w) => ({
+        well_id: w.well_id,
+        well_name: w.well_name,
+        nptHours: safeNum(w?.kpis?.nptHours),
+        maxDepth: safeNum(w?.kpis?.depthMax),
+      }));
+      const eventsPerWell = summaryWells.map((w) => ({
+        well_id: w.well_id,
+        totalEvents: safeNum(w?.kpis?.eventCount),
+        criticalEvents: safeNum(w?.kpis?.criticalEvents),
+        nonCritical: Math.max(0, safeNum(w?.kpis?.eventCount) - safeNum(w?.kpis?.criticalEvents)),
+      }));
+      const totalNpt = wellNptComparison.reduce((s, w) => s + w.nptHours, 0);
+      const totalEvents = summaryWells.reduce((s, w) => s + safeNum(w?.kpis?.eventCount), 0);
+      const criticalEventsTotal = summaryWells.reduce((s, w) => s + safeNum(w?.kpis?.criticalEvents), 0);
+      const tableRows = summaryWells
+        .map((w) => {
+          const nptHours = safeNum(w?.kpis?.nptHours);
+          const total = safeNum(w?.kpis?.eventCount);
+          const critical = safeNum(w?.kpis?.criticalEvents);
+          const productivity = total > 0 ? Math.max(0, 100 - (nptHours / Math.max(total, 1)) * 5) : 100;
+          const nptRate = Math.round((100 - productivity) * 10) / 10;
+          let status = "Good";
+          if (critical >= 3 || productivity < 95) status = "Needs Attention";
+          else if (productivity >= 97) status = "Excellent";
+          return {
+            well_id: w.well_id,
+            nptHours: `${nptHours.toFixed(1)} hrs`,
+            totalEvents: total,
+            critical,
+            productivity: `${(Math.round(productivity * 10) / 10)}%`,
+            nptRate: `${nptRate}%`,
+            status,
+          };
+        })
+        .sort((a, b) => a.well_id.localeCompare(b.well_id));
+      return {
+        hasDetailedDashboards,
+        activeWellsCount,
+        totalNpt,
+        totalEvents,
+        criticalEventsTotal,
+        avgProductivity: 100,
+        fleetNptTrend: [],
+        wellNptComparison,
+        eventTypeDistribution: [],
+        eventsPerWell,
+        radarAxisData: [],
+        top3: [],
+        tableRows,
+        fleetDetailedEvents: [],
+      };
+    }
 
     let cumulativeNpt = 0;
     const fleetNptTrend = nptByDate.map((d) => {
@@ -418,11 +458,6 @@ export default function FleetWideReports() {
           </button>
         </div>
       </div>
-      {dashboardsLoading && !computed.hasDetailedDashboards && (
-        <div className="summaryLoading" style={{ marginBottom: 12 }}>
-          Loading detailed well charts in background...
-        </div>
-      )}
 
       <div className="summaryReportPrint fleetPrint">
         <div className="fleetTopKpis">
@@ -481,35 +516,43 @@ export default function FleetWideReports() {
         <div className="fleetSection">
           <h2 className="fleetSectionTitle">Fleet NPT Trend (Cumulative)</h2>
           <div className="fleetChartCard">
-            <ResponsiveContainer width="100%" height={320}>
-              <LineChart data={computed.fleetNptTrend} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="shortDate" tick={{ fontSize: 12 }} />
-                <YAxis label={{ value: "Hours", angle: -90, position: "insideLeft" }} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="nptHours" stroke="#dc2626" strokeWidth={3} dot={{ r: 4 }} name="Total NPT" />
-                <Line type="monotone" dataKey="avgPerWell" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} name="Avg per Well" />
-              </LineChart>
-            </ResponsiveContainer>
+            {computed.fleetNptTrend.length === 0 ? (
+              <ChartNoData text="No trend data available." />
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <LineChart data={computed.fleetNptTrend} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="shortDate" tick={{ fontSize: 12 }} />
+                  <YAxis label={{ value: "Hours", angle: -90, position: "insideLeft" }} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="nptHours" stroke="#dc2626" strokeWidth={3} dot={{ r: 4 }} name="Total NPT" />
+                  <Line type="monotone" dataKey="avgPerWell" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} name="Avg per Well" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className="fleetSection">
           <h2 className="fleetSectionTitle">Event Type Distribution (All Wells)</h2>
           <div className="fleetChartCard">
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={computed.eventTypeDistribution} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="type" tick={{ fontSize: 12 }} />
-                <YAxis yAxisId="left" label={{ value: "Count", angle: -90, position: "insideLeft" }} tick={{ fontSize: 12 }} />
-                <YAxis yAxisId="right" orientation="right" label={{ value: "NPT Hours", angle: 90, position: "insideRight" }} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Legend />
-                <Bar yAxisId="left" dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Event Count" />
-                <Line yAxisId="right" type="monotone" dataKey="nptHours" stroke="#dc2626" strokeWidth={3} dot={{ r: 3 }} name="Total NPT" />
-              </BarChart>
-            </ResponsiveContainer>
+            {computed.eventTypeDistribution.length === 0 ? (
+              <ChartNoData text="No event-type data available." />
+            ) : (
+              <ResponsiveContainer width="100%" height={320}>
+                <BarChart data={computed.eventTypeDistribution} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="type" tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="left" label={{ value: "Count", angle: -90, position: "insideLeft" }} tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="right" orientation="right" label={{ value: "NPT Hours", angle: 90, position: "insideRight" }} tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="count" fill="#3b82f6" radius={[6, 6, 0, 0]} name="Event Count" />
+                  <Line yAxisId="right" type="monotone" dataKey="nptHours" stroke="#dc2626" strokeWidth={3} dot={{ r: 3 }} name="Total NPT" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -533,20 +576,24 @@ export default function FleetWideReports() {
         <div className="fleetSection">
           <h2 className="fleetSectionTitle">Well Performance Comparison (Top 3 Wells)</h2>
           <div className="fleetChartCard">
-            <ResponsiveContainer width="100%" height={340}>
-              <RadarChart data={computed.radarAxisData} cx="50%" cy="45%" outerRadius="80%">
-                <PolarGrid />
-                <PolarAngleAxis dataKey="metric" />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                {computed.top3.map((w, i) => {
-                  const colors = ["#3b82f6", "#f59e0b", "#22c55e"];
-                  const c = colors[i % colors.length];
-                  return (
-                    <Radar key={w.well_id} name={w.well_id} dataKey={w.well_id} stroke={c} fill={c} fillOpacity={0.15} />
-                  );
-                })}
-              </RadarChart>
-            </ResponsiveContainer>
+            {computed.radarAxisData.length === 0 || computed.top3.length === 0 ? (
+              <ChartNoData text="No performance comparison data available." />
+            ) : (
+              <ResponsiveContainer width="100%" height={340}>
+                <RadarChart data={computed.radarAxisData} cx="50%" cy="45%" outerRadius="80%">
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="metric" />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                  {computed.top3.map((w, i) => {
+                    const colors = ["#3b82f6", "#f59e0b", "#22c55e"];
+                    const c = colors[i % colors.length];
+                    return (
+                      <Radar key={w.well_id} name={w.well_id} dataKey={w.well_id} stroke={c} fill={c} fillOpacity={0.15} />
+                    );
+                  })}
+                </RadarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
