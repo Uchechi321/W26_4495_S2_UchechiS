@@ -8,8 +8,8 @@ export default function Home() {
   const features = [
     {
       icon: Activity,
-      title: "Real-Time Monitoring",
-      description: "Track drilling operations with live data insights",
+      title: "Post-Operation Monitoring",
+      description: "Track drilling operations using analyzed report data",
     },
     {
       icon: BarChart3,
@@ -89,7 +89,7 @@ export default function Home() {
             </h1>
             <p className="homeSubtitle">
               Harness AI-powered insights to visualize drilling problems, predict equipment failures, and
-              optimize operations in real-time.
+              optimize operations using post-operation analysis.
             </p>
 
             <div className="homeHeroActions">
@@ -108,7 +108,7 @@ export default function Home() {
               </div>
               <div>
                 <div className="homeStatValue homeStatCyan">24/7</div>
-                <div className="homeStatLabel">Monitoring</div>
+                <div className="homeStatLabel">Analysis Support</div>
               </div>
               <div>
                 <div className="homeStatValue">-40%</div>
