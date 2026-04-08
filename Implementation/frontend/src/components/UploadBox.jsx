@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiFetch } from "../api/client";
 import "../styles/UploadBox.css";
 
-export default function UploadBox({ wellId }) {
+export default function UploadBox({ wellId, onUploadSuccess }) {
   const [file, setFile] = useState(null);
   const [reportDate, setReportDate] = useState("");
   const [parserType, setParserType] = useState("NNPC_FORMAT_A");
@@ -31,6 +31,10 @@ export default function UploadBox({ wellId }) {
     }
 
     setStatus("success");
+    setFile(null);
+    if (typeof onUploadSuccess === "function") {
+      await onUploadSuccess();
+    }
   }
 
   return (

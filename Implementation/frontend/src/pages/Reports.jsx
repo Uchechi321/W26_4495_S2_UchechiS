@@ -12,6 +12,18 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  async function loadReports() {
+    try {
+      const res = await apiFetch(`/api/wells/${wellId}/reports`);
+      if (!res.ok) throw new Error("Failed to load reports");
+      const data = await res.json();
+      setReports(data);
+      setError("");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   async function handleDelete(reportId) {
       if (!window.confirm("Are you sure you want to delete this report?")) return;
 
@@ -32,12 +44,9 @@ export default function Reports() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await apiFetch(`/api/wells/${wellId}/reports`);
-        if (!res.ok) throw new Error("Failed to load reports");
-        const data = await res.json();
-        setReports(data);
-      } catch (e) {
-        setError(e.message);
+        await loadReports();
+      } catch {
+        // loadReports sets error state.
       } finally {
         setLoading(false);
       }
@@ -58,7 +67,7 @@ export default function Reports() {
       </h2>
 
       {/* ✅ NEW — Upload Box directly on reports page */}
-      <UploadBox wellId={wellId} />
+      <UploadBox wellId={wellId} onUploadSuccess={loadReports} />
 
       {/* REPORT LIST */}
       <div className="reportsContainer">
