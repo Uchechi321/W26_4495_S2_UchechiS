@@ -29,6 +29,22 @@
   display: grid;
   gap: 6px;
   margin-top: 20px;
+  flex: 1;
+}
+
+.sidebarFooterNav {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.navLinkLogout {
+  color: var(--color-sidebar-text-dim);
+}
+
+.navLinkLogout:hover {
+  color: #fca5a5;
+  background: rgba(220, 38, 38, 0.12);
 }
 
 .navLink {

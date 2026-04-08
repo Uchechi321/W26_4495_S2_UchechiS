@@ -59,24 +59,18 @@ def classify_severity_from_score(score: float) -> str:
 
 def force_high_from_signals(segment: Dict[str, Any]) -> bool:
     npt = _to_float(segment.get("nptHours", segment.get("npt_hours", 0.0)))
-    if npt > 5.0:
-        return True
-
-    desc = str(segment.get("whyItMatters", segment.get("description", "")) or "").lower()
-    force_high_terms = (
-        "stuck pipe",
-        "stuck",
-        "kick",
-        "well control",
-        "fluid loss",
-        "lost circulation",
-    )
-    return any(term in desc for term in force_high_terms)
+    # Product rule: red/high severity only when NPT > 5.
+    return npt > 5.0
 
 
 def predict_segment_heuristic(segment: Dict[str, Any]) -> Dict[str, Any]:
     score = compute_risk_score(segment)
-    severity = "High" if force_high_from_signals(segment) else classify_severity_from_score(score)
+    if force_high_from_signals(segment):
+        severity = "High"
+    else:
+        base = classify_severity_from_score(score)
+        # Product rule: prevent High when NPT <= 5.
+        severity = "Medium" if base == "High" else base
     return {
         "riskScore": score,
         "predictedSeverity": severity,

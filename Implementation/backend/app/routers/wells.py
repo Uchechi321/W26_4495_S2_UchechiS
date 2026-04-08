@@ -194,6 +194,142 @@ def get_wells_summary(
     return result
 
 
+@router.get("/{well_id}/kpis")
+def get_well_kpis(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    well = get_well_for_user(db, well_id, user_email)
+    ops = db.query(Operation).filter(Operation.well_id == well_id).all()
+    total_npt = sum((o.npt_hours or 0) for o in ops)
+    depth_max = max((o.depth_to or 0 for o in ops), default=0)
+    return {
+        "well": {
+            "well_id": well.well_id,
+            "well_name": well.well_name,
+            "location": well.location,
+        },
+        "kpis": {
+            "depthMax": depth_max,
+            "nptHours": round(total_npt, 2),
+            "eventCount": len(ops),
+            "criticalEvents": sum(1 for o in ops if (o.npt_hours or 0) >= 2),
+            "highRiskZones": sum(1 for o in ops if (o.npt_hours or 0) > 0),
+            "maintenanceRisk": "Low" if total_npt == 0 else "Medium" if total_npt < 5 else "High",
+        },
+    }
+
+
+@router.get("/{well_id}/segments-v2")
+def get_well_segments(
+    well_id: str,
+    lite: bool = True,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    get_well_for_user(db, well_id, user_email)
+
+    if lite:
+        ops = (
+            db.query(Operation)
+            .filter(Operation.well_id == well_id)
+            .order_by(Operation.depth_from.asc())
+            .all()
+        )
+        segments = []
+        for o in ops:
+            seg = {
+                "from": o.depth_from,
+                "to": o.depth_to,
+                "eventType": o.operation_type,
+                "operationType": o.operation_type,
+                # Keep description available for SegmentModal immediately.
+                "whyItMatters": o.description,
+                "nptHours": o.npt_hours,
+                "recordedAt": None,
+                "report_id": o.report_id,
+            }
+            seg["level"] = classify_segment_level_rule_based(seg)
+            seg["riskScore"] = None
+            seg["predictedSeverity"] = (
+                "High" if seg["level"] == "critical" else "Medium" if seg["level"] == "warning" else "Low"
+            )
+            segments.append(seg)
+        return {"segments": segments, "lite": True}
+
+    ops_with_dates = (
+        db.query(Operation, DailyReport.report_date)
+        .join(DailyReport, DailyReport.report_id == Operation.report_id)
+        .filter(Operation.well_id == well_id)
+        .order_by(Operation.depth_from.asc())
+        .all()
+    )
+    segments = []
+    for o, report_date in ops_with_dates:
+        seg = {
+            "from": o.depth_from,
+            "to": o.depth_to,
+            "eventType": o.operation_type,
+            "operationType": o.operation_type,
+            "whyItMatters": o.description,
+            "nptHours": o.npt_hours,
+            "recordedAt": report_date.isoformat() if report_date else None,
+            "report_id": o.report_id,
+        }
+        ml_result = predict_segment_risk(seg)
+        seg["riskScore"] = ml_result["riskScore"]
+        seg["predictedSeverity"] = ml_result["predictedSeverity"]
+        seg["level"] = _level_from_ml_severity(ml_result["predictedSeverity"])
+        segments.append(seg)
+    return {"segments": segments, "lite": False}
+
+
+@router.get("/{well_id}/charts")
+def get_well_charts(
+    well_id: str,
+    db: Session = Depends(get_db),
+    user_email: str = Depends(require_user_email),
+):
+    get_well_for_user(db, well_id, user_email)
+    ops_with_dates = (
+        db.query(Operation, DailyReport.report_date)
+        .join(DailyReport, DailyReport.report_id == Operation.report_id)
+        .filter(Operation.well_id == well_id)
+        .all()
+    )
+    by_date = {}
+    counts = {"critical": 0, "warning": 0, "normal": 0}
+    for o, report_date in ops_with_dates:
+        seg = {
+            "from": o.depth_from,
+            "to": o.depth_to,
+            "operationType": o.operation_type,
+            "eventType": o.operation_type,
+            "whyItMatters": o.description,
+            "nptHours": o.npt_hours,
+        }
+        lvl = classify_segment_level_rule_based(seg)
+        counts[lvl] = counts.get(lvl, 0) + 1
+        if report_date and (o.npt_hours or 0) > 0:
+            key = report_date.isoformat()
+            by_date[key] = (by_date.get(key) or 0) + float(o.npt_hours or 0)
+
+    npt_by_report_date = [
+        {"date": d, "hours": h}
+        for d, h in sorted(by_date.items(), key=lambda x: x[0])
+    ]
+    event_count_by_type = [
+        {"name": "Critical", "count": counts.get("critical", 0), "color": "#dc2626"},
+        {"name": "Warning", "count": counts.get("warning", 0), "color": "#f59e0b"},
+        {"name": "Normal", "count": counts.get("normal", 0), "color": "#16a34a"},
+    ]
+    return {
+        "nptByReportDate": npt_by_report_date,
+        "eventCountByType": event_count_by_type,
+    }
+
+
 @router.get("/{well_id}/dashboard")
 def get_well_dashboard(
     well_id: str,

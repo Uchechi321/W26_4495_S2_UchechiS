@@ -91,7 +91,7 @@ def get_operations_for_well(
     return results
 
 
-@router.get("/{well_id}/segments")
+@router.get("/{well_id}/segments-basic")
 def get_segments_for_well(
     well_id: str,
     start: date | None = Query(default=None, description="YYYY-MM-DD"),

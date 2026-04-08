@@ -70,7 +70,11 @@ def predict_segment_risk(segment: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         return predict_segment_heuristic(segment)
 
-    severity = "High" if force_high_from_signals(segment) else classify_severity_from_score(score)
+    if force_high_from_signals(segment):
+        severity = "High"
+    else:
+        base = classify_severity_from_score(score)
+        severity = "Medium" if base == "High" else base
 
     return {
         "riskScore": score,
