@@ -77,6 +77,8 @@ function toCSV(rows) {
 export default function FleetWideReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [summaryWells, setSummaryWells] = useState([]);
+  const [dashboardsLoading, setDashboardsLoading] = useState(false);
   const [wellDashboards, setWellDashboards] = useState([]); // [{ wellSummary, dashboard }]
 
   useEffect(() => {
@@ -94,8 +96,11 @@ export default function FleetWideReports() {
         const wells = Array.isArray(summary) ? summary : [];
 
         if (cancelled) return;
+        setSummaryWells(wells);
+        setLoading(false);
 
         const activeWells = wells.filter((w) => (w.report_count ?? 0) > 0);
+        setDashboardsLoading(true);
         const dashboards = await Promise.allSettled(
           activeWells.map(async (w) => {
             // Per-well timeout so one slow dashboard call doesn't block the whole fleet page.
@@ -126,7 +131,10 @@ export default function FleetWideReports() {
         if (cancelled) return;
         setError(e?.message || "Failed to load fleet reports");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setDashboardsLoading(false);
+        }
       }
     }
     load();
@@ -137,7 +145,10 @@ export default function FleetWideReports() {
 
   const computed = useMemo(() => {
     const wells = wellDashboards.map((x) => x.dashboard).filter(Boolean);
-    const activeWellsCount = wellDashboards.length;
+    const hasDetailedDashboards = wellDashboards.length > 0;
+    const activeWellsCount = hasDetailedDashboards
+      ? wellDashboards.length
+      : summaryWells.filter((w) => (w.report_count ?? 0) > 0).length;
 
     const segmentsByWell = wellDashboards.map((x) => x.dashboard?.segments || []);
     const allSegments = segmentsByWell.flat();
@@ -184,9 +195,15 @@ export default function FleetWideReports() {
       return { well_id: w.well_id, well_name: w.well_name, nptHours: npt, maxDepth };
     });
 
-    const totalNpt = wellNptComparison.reduce((s, w) => s + w.nptHours, 0);
-    const totalEvents = eventsByWell.reduce((s, w) => s + w.totalEvents, 0);
-    const criticalEventsTotal = eventsByWell.reduce((s, w) => s + w.criticalEvents, 0);
+    const totalNpt = hasDetailedDashboards
+      ? wellNptComparison.reduce((s, w) => s + w.nptHours, 0)
+      : summaryWells.reduce((s, w) => s + safeNum(w?.kpis?.nptHours), 0);
+    const totalEvents = hasDetailedDashboards
+      ? eventsByWell.reduce((s, w) => s + w.totalEvents, 0)
+      : summaryWells.reduce((s, w) => s + safeNum(w?.kpis?.eventCount), 0);
+    const criticalEventsTotal = hasDetailedDashboards
+      ? eventsByWell.reduce((s, w) => s + w.criticalEvents, 0)
+      : summaryWells.reduce((s, w) => s + safeNum(w?.kpis?.criticalEvents), 0);
 
     // Productivity proxy per well: productive hours per date = max(0, 24 - NPT hours for that date)
     const wellProductivity = eventsByWell.map((w) => {
@@ -208,7 +225,7 @@ export default function FleetWideReports() {
         productivityPercent: Math.round(productivityPercent * 10) / 10,
       };
     });
-    const avgProductivity = wellProductivity.length
+    const avgProductivity = hasDetailedDashboards && wellProductivity.length
       ? Math.round((wellProductivity.reduce((s, x) => s + x.productivityPercent, 0) / wellProductivity.length) * 10) / 10
       : 100;
 
@@ -317,6 +334,7 @@ export default function FleetWideReports() {
     }
 
     return {
+      hasDetailedDashboards,
       activeWellsCount,
       totalNpt,
       totalEvents,
@@ -331,7 +349,7 @@ export default function FleetWideReports() {
       tableRows,
       fleetDetailedEvents,
     };
-  }, [wellDashboards]);
+  }, [wellDashboards, summaryWells]);
 
   const handlePDF = () => window.print();
 
@@ -400,6 +418,11 @@ export default function FleetWideReports() {
           </button>
         </div>
       </div>
+      {dashboardsLoading && !computed.hasDetailedDashboards && (
+        <div className="summaryLoading" style={{ marginBottom: 12 }}>
+          Loading detailed well charts in background...
+        </div>
+      )}
 
       <div className="summaryReportPrint fleetPrint">
         <div className="fleetTopKpis">
