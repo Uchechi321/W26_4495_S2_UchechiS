@@ -24,23 +24,29 @@ and explainable predictive maintenance indicators based on recorded operational 
 This section explains how to install and run the project on your machine, including both backend (Python) and frontend (React).
 
 ## Backend (Python)
-1. Navigate to the Frontend Folder:
-   cd backend
+1. Navigate to the Backend Folder:
+   cd Implementation/backend
    
 2. Install Python:
-   Ensure you have Python 3.9+ installed:
-   - python --version
+   Ensure you have Python installed:
+   - Check if you have installed python using: py --version
+   - If you have not installed python, download Python from the official website: https://www.python.org/downloads/
+   - During installation, check:
+      - Add Python to PATH
+      - Ensure pip and venv are selected
 
 3. Create and Activate a Virtual Environment:
    - Create:
-     python -m venv venv
+     py -m venv venv
    - Activate (Windows):
      venv\Scripts\activate
+   - If PowerShell blocks npm scripts, allow them for this session(run this below):
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    - Activate (macOS/Linux):
      source venv/bin/activate
 
 4. Install Dependencies:
-   pip install -r requirements.txt
+   - pip install -r requirements.txt
 
 5. Run the Backend Server:
    uvicorn app.main:app --reload
@@ -50,12 +56,16 @@ This section explains how to install and run the project on your machine, includ
    Verify installation:
    - node -v
    - npm -v
+   - If you do not have Node.js, Download from: https://nodejs.org
+   - Make sure Add to PATH is checked during installation.
 
 2. Navigate to the Frontend Folder:
    cd frontend
 
 3. Install Frontend Dependencies:
-   npm install
+     - npm install
+     - If PowerShell blocks npm scripts, allow them for this session(run this below):
+         Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 4. Start the React Development Server:
    npm run dev
