@@ -80,6 +80,8 @@ function ChartNoData({ text }) {
 
 export default function FleetWideReports() {
   const [loading, setLoading] = useState(true);
+  const [dashboardsLoading, setDashboardsLoading] = useState(false);
+  const [detailedRequested, setDetailedRequested] = useState(false);
   const [error, setError] = useState("");
   const [summaryWells, setSummaryWells] = useState([]);
   const [wellDashboards, setWellDashboards] = useState([]); // [{ wellSummary, dashboard }]
@@ -100,20 +102,8 @@ export default function FleetWideReports() {
 
         if (cancelled) return;
         setSummaryWells(wells);
-        const activeWells = wells.filter((w) => (w.report_count ?? 0) > 0);
-        const dashboards = await Promise.allSettled(
-          activeWells.map(async (w) => {
-            const r = await apiFetch(`/api/wells/${w.well_id}/dashboard?include_equipment=false`);
-            if (!r.ok) return { wellSummary: w, dashboard: null };
-            const dash = await r.json();
-            return { wellSummary: w, dashboard: dash };
-          })
-        );
-        if (cancelled) return;
-        const resolved = dashboards
-          .map((x) => (x.status === "fulfilled" ? x.value : null))
-          .filter((x) => x && x.dashboard);
-        setWellDashboards(resolved);
+        setWellDashboards([]);
+        setDetailedRequested(false);
       } catch (e) {
         if (cancelled) return;
         setError(e?.message || "Failed to load fleet reports");
@@ -123,6 +113,7 @@ export default function FleetWideReports() {
         }
       }
     }
+
     load();
     return () => {
       cancelled = true;
@@ -434,6 +425,30 @@ export default function FleetWideReports() {
   };
 
   const handleExportTable = () => handleDownloadCSV();
+  const handleLoadDetailedAnalytics = async () => {
+    if (dashboardsLoading) return;
+    setDashboardsLoading(true);
+    setDetailedRequested(true);
+    try {
+      const activeWells = summaryWells.filter((w) => (w.report_count ?? 0) > 0);
+      const dashboards = await Promise.allSettled(
+        activeWells.map(async (w) => {
+          const r = await apiFetch(`/api/wells/${w.well_id}/dashboard?include_equipment=false`);
+          if (!r.ok) return { wellSummary: w, dashboard: null };
+          const dash = await r.json();
+          return { wellSummary: w, dashboard: dash };
+        })
+      );
+      const resolved = dashboards
+        .map((x) => (x.status === "fulfilled" ? x.value : null))
+        .filter((x) => x && x.dashboard);
+      setWellDashboards(resolved);
+    } catch (e) {
+      setError(e?.message || "Failed to load detailed analytics");
+    } finally {
+      setDashboardsLoading(false);
+    }
+  };
 
   if (loading) return <div className="summaryReports"><div className="summaryLoading">Loading fleet reports…</div></div>;
   if (error) return <div className="summaryReports"><div className="summaryError">{error}</div></div>;
@@ -447,6 +462,14 @@ export default function FleetWideReports() {
         </div>
 
         <div className="fleetToolbarButtons">
+          <button
+            type="button"
+            className="fleetBtn fleetBtn--ghost"
+            onClick={handleLoadDetailedAnalytics}
+            disabled={dashboardsLoading}
+          >
+            <span>{dashboardsLoading ? "Loading..." : "Load Detailed Analytics"}</span>
+          </button>
           <button type="button" className="fleetBtn fleetBtn--ghost" onClick={handleDownloadCSV}>
             <span>CSV</span>
           </button>
@@ -517,7 +540,7 @@ export default function FleetWideReports() {
           <h2 className="fleetSectionTitle">Fleet NPT Trend (Cumulative)</h2>
           <div className="fleetChartCard">
             {computed.fleetNptTrend.length === 0 ? (
-              <ChartNoData text="No trend data available." />
+              <ChartNoData text={detailedRequested ? "No trend data available." : "Click 'Load Detailed Analytics' to view trend charts."} />
             ) : (
               <ResponsiveContainer width="100%" height={320}>
                 <LineChart data={computed.fleetNptTrend} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
@@ -538,7 +561,7 @@ export default function FleetWideReports() {
           <h2 className="fleetSectionTitle">Event Type Distribution (All Wells)</h2>
           <div className="fleetChartCard">
             {computed.eventTypeDistribution.length === 0 ? (
-              <ChartNoData text="No event-type data available." />
+              <ChartNoData text={detailedRequested ? "No event-type data available." : "Click 'Load Detailed Analytics' to view event-type charts."} />
             ) : (
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={computed.eventTypeDistribution} margin={{ top: 20, right: 20, bottom: 10, left: 10 }}>
@@ -577,7 +600,7 @@ export default function FleetWideReports() {
           <h2 className="fleetSectionTitle">Well Performance Comparison (Top 3 Wells)</h2>
           <div className="fleetChartCard">
             {computed.radarAxisData.length === 0 || computed.top3.length === 0 ? (
-              <ChartNoData text="No performance comparison data available." />
+              <ChartNoData text={detailedRequested ? "No performance comparison data available." : "Click 'Load Detailed Analytics' to compare top wells."} />
             ) : (
               <ResponsiveContainer width="100%" height={340}>
                 <RadarChart data={computed.radarAxisData} cx="50%" cy="45%" outerRadius="80%">
